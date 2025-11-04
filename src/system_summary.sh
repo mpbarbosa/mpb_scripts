@@ -1,26 +1,4 @@
 #!/bin/bash
-#
-# comp_resume.sh - System Information Summary Script
-#
-# This script provides a comprehensive overview of system information including
-# operating system details, storage, memory, network configuration, and package
-# manager statistics.
-#
-# Features:
-# - Operating system and distribution information
-# - Storage and file system analysis
-# - Memory and system resources monitoring
-# - Network configuration display
-# - Multi-package-manager statistics (apt, snap, pip, npm, cargo)
-# - Formatted table output for enhanced readability
-#
-# Usage:
-#   ./comp_resume.sh
-#
-# Author: mpb
-# Repository: https://github.com/mpbarbosa/mpb_scripts
-# License: MIT
-#
 
 # Color codes for consistent formatting (following system_update.sh standards)
 RED='\033[0;31m'
@@ -30,6 +8,8 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 WHITE='\033[0;37m'
 NC='\033[0m' # No Color
+
+[ -f "~/.bashrc" ] && source "~/.bashrc"
 
 # Utility function for section headers (Tier 1 - Package Manager Header style)
 print_section_header() {
@@ -118,6 +98,7 @@ echo -e "${GREEN}✅${NC} Memory information analyzed successfully"
 print_operation_header "⚙️  System Environment"
 
 print_substep "🖥️  Terminal Environment: $TERM"
+print_substep "🛤️  System PATH: $PATH"
 echo -e "${GREEN}✅${NC} System environment information collected"
 
 if [ -n "$termux" ]; then

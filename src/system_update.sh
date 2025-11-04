@@ -31,12 +31,12 @@
 #   ./system_update.sh [OPTIONS]
 #
 # Dependencies:
-#   - sudo privileges for system package operations
+#   - sudo access for system package operations (prompted when needed)
 #   - Various package managers (detected automatically)
 #   - Network connectivity for package updates and version checking
 #
 # Author: mpb
-# Repository: https://github.com/mpbarbosa/mpb_scripts
+# Repository: https://github.com/mpbarbosa/scripts
 # License: MIT
 #
 
@@ -47,7 +47,7 @@ readonly SCRIPT_VERSION="0.1.0"
 readonly SCRIPT_NAME="system_update.sh"
 readonly SCRIPT_DESCRIPTION="Comprehensive Package Management and System Update Script"
 readonly SCRIPT_AUTHOR="mpb"
-readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/mpb_scripts"
+readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/scripts"
 
 #=============================================================================
 # COLOR DEFINITIONS AND OUTPUT FORMATTING
@@ -64,6 +64,9 @@ CYAN='\033[0;36m'     # Informational messages and status updates
 MAGENTA='\033[0;35m'  # User prompts and interactive elements
 WHITE='\033[0;37m'    # White text for enhanced visibility and readability
 NC='\033[0m'          # No Color - resets terminal color to default
+
+
+[ -f ".bashrc" ] && source ".bashrc"
 
 #=============================================================================
 # UTILITY FUNCTIONS FOR FORMATTED OUTPUT
@@ -116,6 +119,7 @@ print_section_header() {
         *"RUST"*|*"CARGO"*) emoji="🦀" ;;
         *"PYTHON"*|*"PIP"*) emoji="🐍" ;;
         *"NODE"*|*"NPM"*) emoji="📗" ;;
+        *"KITTY"*) emoji="🐱" ;;
         *"CALIBRE"*) emoji="📚" ;;
         *"SYSTEM"*|*"UPGRADE"*) emoji="⚡" ;;
         *"INFORMATION"*|*"SUMMARY"*) emoji="ℹ️" ;;
@@ -132,22 +136,9 @@ print_section_header() {
 }
 
 #=============================================================================
-# SYSTEM PRIVILEGE VALIDATION
-#============================================================================= # Verify that the script is running with root privileges (EUID = 0)
-# Most package management operations require elevated privileges for:
-# - Installing/removing packages
-# - Modifying system files
-# - Accessing protected directories
-# - System maintenance operations
-# 
-# Exit immediately if privileges are insufficient to prevent partial operations
-check_privileges() {
-    if [ "$EUID" -ne 0 ]; then
-        print_error "🔒 This script requires root privileges. Please run with sudo."
-        print_error "💡 Example: sudo ./system_update.sh"
-        exit 1
-    fi
-}
+# UTILITY HELPER FUNCTIONS
+#=============================================================================
+# Helper functions for system operations that may require elevated privileges
 
 # Display script version and metadata information
 # Provides comprehensive script identification including version, author, and repository
@@ -192,7 +183,7 @@ update_package_list() {
     
     # Capture apt-get update output for processing with emoji markers
     local apt_output
-    apt_output=$(apt-get update 2>&1)
+    apt_output=$(sudo apt-get update 2>&1)
     local exit_code=$?
     
     # Process and display command output with appropriate Unicode emojis
@@ -241,7 +232,7 @@ upgrade_packages() {
     # Capture both stdout and stderr from apt-get upgrade for comprehensive analysis
     # We need to analyze the output to detect special conditions like kept back packages
     local upgrade_output
-    upgrade_output=$(apt-get upgrade -y 2>&1)
+    upgrade_output=$(sudo apt-get upgrade -y 2>&1)
     local upgrade_exit_code=$?
     
     # Process and display command output with appropriate Unicode emojis
@@ -317,7 +308,7 @@ upgrade_packages() {
                         # Try to install the kept back packages individually
                         # This often resolves dependency issues that prevent normal upgrades
                         local dist_upgrade_output
-                        dist_upgrade_output=$(apt-get install "$kept_back_packages" -y 2>&1)
+                        dist_upgrade_output=$(sudo apt-get install "$kept_back_packages" -y 2>&1)
                         local dist_upgrade_exit_code=$?
                         
                         # Show the detailed output of the install attempt
@@ -465,7 +456,7 @@ full_upgrade() {
     
     # Capture dist-upgrade output for processing with emoji markers
     local dist_upgrade_output
-    dist_upgrade_output=$(apt-get dist-upgrade -y 2>&1)
+    dist_upgrade_output=$(sudo apt-get dist-upgrade -y 2>&1)
     local exit_code=$?
     
     # Process and display command output with appropriate Unicode emojis
@@ -538,7 +529,7 @@ cleanup() {
     
     # Capture autoremove output for processing with emoji markers
     local autoremove_output
-    autoremove_output=$(apt-get autoremove -y 2>&1)
+    autoremove_output=$(sudo apt-get autoremove -y 2>&1)
     local autoremove_exit_code=$?
     
     # Process and display autoremove output with emojis
@@ -575,7 +566,7 @@ cleanup() {
     
     # Capture autoclean output for processing with emoji markers
     local autoclean_output
-    autoclean_output=$(apt-get autoclean 2>&1)
+    autoclean_output=$(sudo apt-get autoclean 2>&1)
     local autoclean_exit_code=$?
     
     # Process and display autoclean output with emojis
@@ -626,7 +617,7 @@ check_broken_packages() {
         print_status "Package integrity issues detected - attempting automatic repair"
         
         print_operation_header "🔧 Step 1: Attempting to fix broken dependencies..."
-        if apt-get install -f -y >/dev/null 2>&1; then
+        if sudo apt-get install -f -y >/dev/null 2>&1; then
             print_success "Successfully fixed broken dependencies"
         else
             print_warning "Some dependency issues could not be automatically resolved"
@@ -945,7 +936,7 @@ maintain_dpkg_packages() {
         
         # Repair broken dependencies that prevent proper package states
         print_status "Repairing broken package dependencies..."
-        if apt-get install -f -y >/dev/null 2>&1; then
+        if sudo apt-get install -f -y >/dev/null 2>&1; then
             print_success "Successfully repaired all broken dependencies"
         else
             print_warning "Some dependency issues could not be automatically resolved"
@@ -1520,7 +1511,7 @@ check_calibre_update() {
                 1)
                     # Method 1: Try apt package manager first
                     print_status "📦 Attempting Calibre update via apt package manager..."
-                    if apt-get update >/dev/null 2>&1 && apt-get upgrade calibre -y >/dev/null 2>&1; then
+                    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get upgrade calibre -y >/dev/null 2>&1; then
                         # VERIFICATION: Check if update was actually applied
                         local new_version=$(get_calibre_current_version)
                         if [ -n "$new_version" ] && [ "$new_version" != "$current_version" ]; then
@@ -1576,6 +1567,97 @@ check_calibre_update() {
     fi
     
     ask_continue
+}
+
+#=============================================================================
+# KITTY TERMINAL EMULATOR
+#=============================================================================
+# Kitty is a fast, feature-rich, GPU-based terminal emulator. This section
+# checks for and installs available Kitty updates using the official Kitty
+# installer script.
+#
+# Features:
+# - Detects if Kitty terminal emulator is installed on the system
+# - Checks for available Kitty updates using version comparison
+# - Installs updates using the official Kitty installer script
+# - Provides informative feedback about the update process
+#
+# Note: Kitty uses a custom installer that downloads and installs the latest
+# version directly from the Kitty GitHub releases. This is the recommended
+# update method for Kitty installations.
+#
+
+check_kitty_update() {
+    print_operation_header "Checking for Kitty terminal emulator updates..."
+    
+    # Check if Kitty is installed in common locations
+    local kitty_bin=""
+    local is_kitty_installed=$(command -v kitty >/dev/null 2>&1; echo $?)
+    print_status "is_kitty_installed=$is_kitty_installed"
+    if [ $is_kitty_installed -eq 0 ]; then
+        kitty_bin="kitty"
+    elif [ -x "$HOME/.local/kitty.app/bin/kitty" ]; then
+        kitty_bin="$HOME/.local/kitty.app/bin/kitty"
+    elif [ -x "/usr/local/bin/kitty" ]; then
+        kitty_bin="/usr/local/bin/kitty"
+    elif [ -x "/usr/bin/kitty" ]; then
+        kitty_bin="/usr/bin/kitty"
+    else
+        print_status "Kitty terminal emulator is not installed on this system"
+        return 0
+    fi
+    
+    print_status "Found Kitty at: $kitty_bin"
+    
+    # Get current Kitty version
+    local current_version
+    current_version=$("$kitty_bin" --version 2>/dev/null | awk '{print $2}')
+    
+    if [ -z "$current_version" ]; then
+        print_warning "Could not determine current Kitty version"
+        return 1
+    fi
+    
+    print_status "Current Kitty version: $current_version"
+    
+    # Check for latest version from GitHub releases
+    print_status "Checking for latest Kitty version..."
+    local latest_version
+    latest_version=$(curl -s https://api.github.com/repos/kovidgoyal/kitty/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+    
+    if [ -z "$latest_version" ]; then
+        print_warning "Could not fetch latest Kitty version from GitHub"
+        return 1
+    fi
+    
+    print_status "Latest Kitty version: $latest_version"
+    
+    # Compare versions
+    if [ "$current_version" = "$latest_version" ]; then
+        print_success "Kitty is already up to date (version $current_version)"
+        return 0
+    fi
+    
+    print_status "A newer version of Kitty is available: $latest_version (current: $current_version)"
+    
+    # Install update using official installer
+    print_operation_header "Installing Kitty update..."
+    
+    if curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin; then
+        print_success "Kitty has been updated successfully to version $latest_version"
+        
+        # Verify the update
+        local new_version
+        new_version=$("$kitty_bin" --version 2>/dev/null | awk '{print $2}')
+        if [ -n "$new_version" ]; then
+            print_success "Verified new Kitty version: $new_version"
+        fi
+    else
+        print_error "Failed to update Kitty terminal emulator"
+        return 1
+    fi
+    
+    return 0
 }
 
 #=============================================================================
@@ -1951,7 +2033,7 @@ usage() {
     echo "  -v, --version       Show script version and information"
     echo "      --simple        Simple update and upgrade only"
     echo "  -s, --stop          Interactive mode - ask user to continue after each step"
-    echo "  -f, --full          Full upgrade including dist-upgrade (runs comp_resume.sh first)"
+    echo "  -f, --full          Full upgrade including dist-upgrade (runs system_summary.sh first)"
     echo "  -c, --cleanup-only  Only perform cleanup operations"
     echo "  -l, --list          List all installed packages by package manager"
     echo "      --list-detailed List all installed packages with details"
@@ -2037,20 +2119,19 @@ if [ "$LIST_MODE" = true ]; then
     exit 0
 fi
 
-# Check if we have the necessary privileges
-check_privileges
+# Note: This script will prompt for sudo password when needed for system operations
 
-# Execute comp_resume.sh if full mode is enabled
+# Execute system_summary.sh if full mode is enabled
 if [ "$FULL_MODE" = true ]; then
-    print_status "Full mode enabled - executing comp_resume.sh first..."
-    if [ -f "./comp_resume.sh" ]; then
-        if bash ./comp_resume.sh; then
-            true # comp_resume.sh completed successfully
+    print_status "Full mode enabled - executing system_summary.sh first..."
+    if [ -f "./system_summary.sh" ]; then
+        if bash ./system_summary.sh; then
+            true # system_summary.sh completed successfully
         else
-            print_warning "comp_resume.sh execution failed, continuing with apt operations..."
+            print_warning "system_summary.sh execution failed, continuing with apt operations..."
         fi
     else
-        print_warning "comp_resume.sh not found in current directory, skipping..."
+        print_warning "system_summary.sh not found in current directory, skipping..."
     fi
     ask_continue
 fi
@@ -2085,6 +2166,10 @@ else
     # Node.js npm Package Manager Operations
     print_section_header "NODE.JS NPM PACKAGE MANAGER"
     update_npm_packages
+    
+    # Kitty Terminal Emulator Updates
+    print_section_header "KITTY TERMINAL EMULATOR"
+    check_kitty_update
     
     # Calibre Application Updates
     print_section_header "CALIBRE APPLICATION"

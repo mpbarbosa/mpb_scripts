@@ -8,7 +8,7 @@ Linux shell scripts for system automation and maintenance.
 mpb_scripts/
 ├── src/                      # Shell scripts
 │   ├── system_update.sh      # Comprehensive package management and system updates
-│   └── comp_resume.sh        # System information summary and diagnostics
+│   └── system_summary.sh     # System information summary and diagnostics
 ├── prompts/                  # Workflow and prompt files
 │   └── tests_documentation_update_enhanced.txt
 ├── LICENSE                   # MIT License
@@ -38,7 +38,7 @@ Options:
   -h, --help              Show help message
   -v, --version           Show version information
   -s, --stop              Stop before each major operation (interactive mode)
-  -f, --full              Full upgrade mode (includes comp_resume.sh and dist-upgrade)
+  -f, --full              Full upgrade mode (includes system_summary.sh and dist-upgrade)
   -c, --cleanup-only      Only run cleanup operations
   -l, --list              List all installed packages across all package managers
   --list-detailed         Show detailed package information
@@ -50,7 +50,7 @@ Options:
 - Various package managers (detected automatically): apt, snap, cargo, pip, npm
 - Network connectivity for package updates
 
-### comp_resume.sh
+### system_summary.sh
 
 System information summary script that provides a comprehensive overview of system details.
 
@@ -61,10 +61,11 @@ System information summary script that provides a comprehensive overview of syst
 - Network configuration display
 - Multi-package-manager statistics (apt, snap, pip, npm, cargo)
 - Formatted table output for enhanced readability
+- System environment and PATH information
 
 **Usage:**
 ```bash
-./src/comp_resume.sh
+./src/system_summary.sh
 ```
 
 **Dependencies:**
@@ -101,7 +102,7 @@ chmod +x src/*.sh
 3. Run the scripts:
 ```bash
 ./src/system_update.sh
-./src/comp_resume.sh
+./src/system_summary.sh
 ```
 
 ## Development
