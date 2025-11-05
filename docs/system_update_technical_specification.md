@@ -1,0 +1,520 @@
+# Technical Specification: src/system_update.sh
+
+**Document Version:** 1.1  
+**Date:** November 4, 2025  
+**Author:** mpb  
+**Repository:** https://github.com/mpbarbosa/mpb_scripts  
+**Script Version:** 0.2.0 (Alpha)  
+
+## 1. Overview
+
+### 1.1 Purpose
+The `src/system_update.sh` script provides comprehensive package management and system maintenance capabilities across multiple package managers and software distribution methods. The system shall automate routine maintenance tasks while providing intelligent error handling, user interaction options, and detailed progress reporting.
+
+### 1.2 Scope
+This specification defines the functional and non-functional requirements for a multi-package-manager update system supporting APT, Snap, Rust/Cargo, Python pip, Node.js npm, and specialized software like Calibre e-book management.
+
+## 2. Functional Requirements
+
+### 2.1 Core Package Management Operations
+
+#### FR-001: APT Package Management
+- **Requirement:** The system MUST support full APT package lifecycle management with intelligent pre-update verification
+- **Details:**
+  - **Pre-Update Verification:** Check for available updates using `/usr/lib/update-notifier/apt-check` before attempting upgrade operations
+  - **Smart Update Decision:** Skip upgrade operations entirely when no updates are available to improve efficiency
+  - **Fallback Detection:** Use `apt list --upgradable` as alternative when apt-check is unavailable
+  - **Update Reports:** Display total updates and security updates count with detailed breakdown
+  - Update package lists from configured repositories
+  - Upgrade installed packages to latest available versions only when updates are detected
+  - Perform distribution upgrades when requested with pre-verification
+  - Handle kept-back packages intelligently with interactive resolution options
+  - Resolve broken package dependencies automatically
+- **Input:** None (uses system APT configuration and apt-check utility)
+- **Output:** Update availability status, success/failure status, package count statistics, security update alerts, error descriptions
+- **Acceptance Criteria:** APT operations complete without leaving system in inconsistent state, unnecessary operations are skipped when no updates available
+
+#### FR-002: Snap Package Management
+- **Requirement:** The system MUST manage Snap packages when Snap is available
+- **Details:**
+  - Detect Snap package manager availability
+  - Refresh all installed Snap packages
+  - Provide progress feedback for long-running operations
+  - Handle Snap service restarts gracefully
+- **Input:** None (auto-detection)
+- **Output:** Updated package count, operation status
+- **Acceptance Criteria:** All available Snap updates applied successfully
+
+#### FR-003: Rust/Cargo Package Management
+- **Requirement:** The system MUST update Rust toolchain and Cargo packages through modular components
+- **Details:**
+  - **Rustup Self-Update**: Update rustup toolchain manager to latest version
+  - **Toolchain Updates**: Update Rust compiler toolchains (stable, beta, nightly)
+  - **Cargo Utility Management**: Interactively install cargo-update utility when needed
+  - **Package Updates**: Update user-installed Cargo packages with intelligent fallbacks
+  - **Modular Architecture**: Each component operates independently for better error isolation
+- **Input:** None (uses user's Cargo registry), optional user confirmation for utility installation
+- **Output:** Rust version info, package update count, component-specific status reports
+- **Acceptance Criteria:** Rust environment remains functional after updates, modular failures don't prevent other operations
+
+#### FR-004: Python Package Management
+- **Requirement:** The system MUST manage Python packages via pip
+- **Details:**
+  - Update pip itself to latest version
+  - Upgrade all user-installed packages
+  - Handle virtual environments appropriately
+  - Provide security vulnerability reporting
+- **Input:** None (uses pip configuration)
+- **Output:** Package count, security alert summary
+- **Acceptance Criteria:** Python packages updated without breaking dependencies
+
+#### FR-005: Node.js Package Management
+- **Requirement:** The system MUST manage global npm packages
+- **Details:**
+  - Update npm package manager itself
+  - Upgrade all globally installed packages
+  - Check for security vulnerabilities
+  - Provide funding information for maintainers
+- **Input:** None (uses global npm registry)
+- **Output:** Package statistics, security report
+- **Acceptance Criteria:** Node.js environment remains stable after updates
+
+#### FR-006: Application-Specific Updates
+- **Requirement:** The system MUST support specialized application updates
+- **Details:**
+  - Detect Calibre e-book management software installation
+  - Detect Kitty terminal emulator installation and updates
+  - Compare installed version with latest GitHub release
+  - Provide user choice for update installation
+  - Support multiple installation methods (package manager, direct download)
+- **Input:** User confirmation for updates
+- **Output:** Version comparison results, update success status
+- **Acceptance Criteria:** Application updates preserve user configurations
+
+#### FR-007: Pre-Update Verification System
+- **Requirement:** The system MUST implement intelligent pre-update verification to optimize performance and user experience
+- **Details:**
+  - **Primary Verification:** Use `/usr/lib/update-notifier/apt-check` to determine update availability before operations
+  - **Parse Update Information:** Extract total updates and security updates count from apt-check output format ("updates;security_updates")
+  - **Fallback Mechanism:** Automatically switch to `apt list --upgradable` when apt-check is unavailable
+  - **Smart Operation Control:** Skip upgrade operations entirely when no updates are detected (return code 1)
+  - **Security Prioritization:** Highlight security updates and recommend prompt installation
+  - **Error Resilience:** Continue with upgrade operations if verification fails to prevent blocking
+  - **Performance Optimization:** Eliminate unnecessary apt-get operations when system is up-to-date
+- **Input:** System package database state, apt-check utility availability
+- **Output:** Update availability status, update counts (total and security), operation control decisions
+- **Acceptance Criteria:** System efficiently skips upgrade operations when no updates available, provides accurate update information when updates exist
+
+### 2.2 System Maintenance Operations
+
+#### FR-008: Package Database Maintenance
+- **Requirement:** The system MUST maintain package database integrity
+- **Details:**
+  - Perform dpkg database consistency checks
+  - Repair broken package installations
+  - Clean orphaned configuration files
+  - Resolve interrupted package installations
+- **Input:** None (system state analysis)
+- **Output:** Database status, repair actions taken
+- **Acceptance Criteria:** Package database returns to consistent state
+
+#### FR-009: System Cleanup Operations
+- **Requirement:** The system MUST perform comprehensive cleanup
+- **Details:**
+  - Remove orphaned packages (autoremove)
+  - Clean package manager caches
+  - Remove temporary files and logs
+  - Reclaim disk space from unused packages
+- **Input:** None (automatic cleanup)
+- **Output:** Disk space reclaimed, cleanup statistics
+- **Acceptance Criteria:** System freed of unnecessary files without removing needed packages
+
+#### FR-010: Disk Space Management
+- **Requirement:** The system MUST monitor and report disk usage
+- **Details:**
+  - Display disk usage before operations begin
+  - Track space changes throughout execution
+  - Report final disk usage statistics
+  - Alert on low disk space conditions
+- **Input:** None (system disk analysis)
+- **Output:** Disk usage reports, space reclamation statistics
+- **Acceptance Criteria:** User informed of disk space changes
+
+### 2.3 User Interface Requirements
+
+#### FR-011: Command Line Interface
+- **Requirement:** The system MUST provide comprehensive CLI options
+- **Details:**
+  - Support help display (`-h`, `--help`)
+  - Provide version information display (`-v`, `--version`)
+  - Provide simple mode for basic operations (`--simple`)
+  - Enable interactive confirmation mode (`-s`, `--stop`)
+  - Support full system upgrade mode (`-f`, `--full`)
+  - Allow cleanup-only operations (`-c`, `--cleanup-only`)
+  - Provide package listing functionality (`-l`, `--list`)
+  - Support detailed package listing (`--list-detailed`)
+  - Support quiet mode operation (`-q`, `--quiet`)
+- **Input:** Command line arguments as specified
+- **Output:** Appropriate script behavior based on options
+- **Acceptance Criteria:** All documented options function as specified
+
+#### FR-012: Interactive User Confirmation
+- **Requirement:** The system MUST provide user interaction capabilities
+- **Details:**
+  - Allow user to confirm continuation after each major step
+  - Provide clear prompts with default actions
+  - Support user choice in application updates
+  - Handle user interruption gracefully
+- **Input:** User keyboard input (y/n responses)
+- **Output:** Execution control based on user choices
+- **Acceptance Criteria:** User can control script execution flow
+
+#### FR-013: Progress Reporting
+- **Requirement:** The system MUST provide comprehensive progress feedback
+- **Details:**
+  - Use color-coded status messages (INFO, SUCCESS, WARNING, ERROR)
+  - Display operation progress for long-running tasks
+  - Provide package count statistics
+  - Show before/after comparisons
+  - Report update availability status before attempting operations
+- **Input:** None (automatic progress tracking)
+- **Output:** Formatted status messages with appropriate coloring
+- **Acceptance Criteria:** User can follow script progress and understand outcomes
+
+#### FR-014: Output Hierarchical Structure
+- **Requirement:** The system MUST organize output using a consistent three-tier hierarchical structure
+- **Details:**
+  - **Tier 1 - Package Manager Headers:** Top-level visual separators using white text on blue background
+    - Denote major package management systems (APT, Snap, Cargo, pip, npm)
+    - Provide clear visual separation between different package managers
+    - Use consistent formatting: white text on blue background with padding
+  - **Tier 2 - Section Headers:** Major operational categories using bold blue text
+    - Indicate primary operations within each package manager (Update, Upgrade, Cleanup)
+    - Preceded by blank line for visual separation (except when following Package Manager Header)
+    - Use consistent formatting: bold blue text for emphasis
+  - **Tier 3 - Sub-step Headers:** Specific operation details using regular cyan text
+    - Describe individual steps within major operations
+    - Preceded by blank line for visual separation from previous content
+    - Provide granular progress feedback for complex operations
+    - Use consistent formatting: regular cyan text for detailed information
+    - **UI Rule:** Every Tier 3 function must begin with an `echo` command for blank line separation
+- **Input:** None (automatic hierarchical organization)
+- **Output:** Structured terminal output with three-tier visual hierarchy
+- **Acceptance Criteria:** All script output follows consistent hierarchical structure with appropriate visual formatting
+
+#### FR-015: Unicode Emoji Enhancement
+- **Requirement:** The system MUST use Unicode emojis to enhance user experience and visual communication
+- **Details:**
+  - **Status Message Enhancement:** Core utility functions enhanced with contextual emojis
+    - `print_status()`: ℹ️ (information) for general informational messages
+    - `print_success()`: ✅ (check mark) for successful operations  
+    - `print_warning()`: ⚠️ (warning sign) for caution messages
+    - `print_error()`: ❌ (cross mark) for error conditions
+  - **Package Manager Context Emojis:** Section headers include relevant package manager emojis
+    - APT operations: 📦 (package) for Debian/Ubuntu package management
+    - Snap operations: 📱 (mobile phone) for universal snap packages
+    - Rust operations: 🦀 (crab) for Rust ecosystem symbol
+    - Python operations: 🐍 (snake) for Python programming language
+    - npm operations: 📗 (green book) for Node.js package management
+    - Calibre operations: 📚 (books) for e-book management software
+  - **Contextual Message Enhancement:** Operation-specific emojis for clarity
+    - Update operations: 🔄 (arrows forming circle) for refresh/update actions
+    - Version information: 📋 (clipboard), 📊 (bar chart) for data display
+    - User interaction: 🤔 (thinking face), ❓ (question mark) for prompts
+    - Network operations: 🌐 (globe with meridians), 📡 (satellite) for connectivity
+    - Installation: 💻 (laptop), 🔧 (wrench) for system modifications
+    - Security: 🔒 (lock), 🔑 (key) for privilege and security operations
+    - Progress indicators: 1️⃣, 2️⃣, 3️⃣ (numbered indicators) for step enumeration
+    - Success indicators: ✓ enhanced to ✅ for better visibility
+    - Navigation: ⏭️ (next track), 🔙 (back arrow) for user flow control
+- **Input:** None (automatic emoji integration based on context)
+- **Output:** Enhanced visual messages with appropriate Unicode emojis
+- **Acceptance Criteria:** All status messages include contextually appropriate emojis without affecting functionality
+
+### 2.4 Package Information and Statistics
+
+#### FR-016: Package Inventory Management
+- **Requirement:** The system MUST provide comprehensive package listing
+- **Details:**
+  - Count packages across all supported package managers
+  - Provide detailed package information when requested
+  - Support both summary and detailed listing modes
+  - Include application-specific software in counts
+- **Input:** List mode command line options
+- **Output:** Formatted package listings with counts
+- **Acceptance Criteria:** Accurate package counts across all supported managers
+
+## 3. Non-Functional Requirements
+
+### 3.1 Performance Requirements
+
+#### NFR-001: Execution Time
+- **Requirement:** The system MUST complete standard operations within reasonable timeframes with intelligent operation skipping
+- **Details:**
+  - Pre-update verification: < 5 seconds (significant performance improvement)
+  - Package list updates: < 5 minutes
+  - Package upgrades: < 30 minutes (network dependent, skipped when no updates available)
+  - Cleanup operations: < 10 minutes
+  - Total execution time: < 60 minutes under normal conditions, significantly reduced when no updates available
+  - **Performance Optimization:** Skip upgrade operations entirely when pre-verification shows no updates available
+- **Measurement:** Execution timestamps and duration logging, operation skip tracking
+- **Acceptance Criteria:** Operations complete within specified timeframes 95% of the time, unnecessary operations eliminated
+
+#### NFR-002: Resource Utilization
+- **Requirement:** The system MUST operate within reasonable resource constraints
+- **Details:**
+  - Memory usage: < 100MB peak during operation
+  - CPU usage: < 50% sustained during non-network operations
+  - Disk I/O: Minimize unnecessary read/write operations
+  - Network: Efficient use of bandwidth for package downloads
+- **Measurement:** Resource monitoring during execution
+- **Acceptance Criteria:** System remains responsive during script execution
+
+### 3.2 Reliability Requirements
+
+#### NFR-003: Error Handling and Recovery
+- **Requirement:** The system MUST handle errors gracefully without system corruption
+- **Details:**
+  - Network connectivity failures must not leave partial updates
+  - Package manager errors must not corrupt package databases
+  - User interruption must be handled safely
+  - System must recover from transient errors automatically
+- **Measurement:** Error condition testing and recovery verification
+- **Acceptance Criteria:** System remains in consistent state after any error condition
+
+#### NFR-004: Data Integrity
+- **Requirement:** The system MUST maintain package database and system integrity
+- **Details:**
+  - Package operations must be atomic where possible
+  - Configuration files must be preserved during updates
+  - Package dependencies must remain satisfied
+  - System must remain bootable after all operations
+- **Measurement:** System integrity checks before and after execution
+- **Acceptance Criteria:** System integrity maintained through all operations
+
+### 3.3 Security Requirements
+
+#### NFR-005: Privilege Management
+- **Requirement:** The system MUST operate with appropriate security privileges using selective privilege escalation
+- **Details:**
+  - Run in user context to preserve environment variables and user configurations
+  - Escalate to root privileges only for specific system package operations using sudo
+  - Use minimal privileges necessary for each operation (principle of least privilege)
+  - Prompt for sudo password only when system operations require it
+  - Preserve user environment variables (PATH, HOME, etc.) for proper package manager operation
+- **Measurement:** Privilege validation testing, environment preservation validation
+- **Acceptance Criteria:** No operations performed without appropriate privileges, user environment preserved
+
+#### NFR-006: Input Validation
+- **Requirement:** The system MUST validate all external inputs
+- **Details:**
+  - Command line arguments must be validated
+  - User responses must be sanitized
+  - Network responses must be verified
+  - File system inputs must be validated
+- **Measurement:** Input validation testing with malformed inputs
+- **Acceptance Criteria:** No security vulnerabilities from input processing
+
+### 3.4 Compatibility Requirements
+
+#### NFR-007: Operating System Support
+- **Requirement:** The system MUST support specified Linux distributions
+- **Details:**
+  - Ubuntu 18.04 LTS and newer
+  - Debian 10 and newer
+  - Linux Mint 19 and newer
+  - Other APT-based distributions with standard package layouts
+- **Measurement:** Testing on specified distributions
+- **Acceptance Criteria:** Full functionality on all supported distributions
+
+#### NFR-008: Package Manager Compatibility
+- **Requirement:** The system MUST gracefully handle missing package managers
+- **Details:**
+  - Detect availability of each package manager
+  - Skip operations for unavailable package managers
+  - Provide informational messages about skipped operations
+  - Continue execution even if some package managers are unavailable
+- **Measurement:** Testing with various package manager configurations
+- **Acceptance Criteria:** Script functions correctly regardless of package manager availability
+
+### 3.5 Usability Requirements
+
+#### NFR-009: User Experience
+- **Requirement:** The system MUST provide clear and intuitive user experience
+- **Details:**
+  - Status messages must be clear and actionable
+  - Error messages must provide guidance for resolution
+  - Progress indicators must be accurate and helpful
+  - Default behaviors must be safe and sensible
+- **Measurement:** User experience testing and feedback
+- **Acceptance Criteria:** Users can operate script effectively with minimal documentation
+
+#### NFR-010: Documentation Requirements
+- **Requirement:** The system MUST provide comprehensive usage documentation
+- **Details:**
+  - Built-in help system with all options documented
+  - Clear examples for common usage patterns
+  - Error message guidance for troubleshooting
+  - Script header with comprehensive feature description
+- **Measurement:** Documentation completeness review
+- **Acceptance Criteria:** All features documented and accessible via help system
+
+## 4. System Architecture Requirements
+
+### 4.1 Modular Design
+- **Requirement:** The system MUST be organized in logical, reusable modules
+- **Details:**
+  - Separate functions for each package manager
+  - Common utility functions for output formatting
+  - Isolated error handling and recovery functions
+  - Configurable execution flow based on command line options
+
+### 4.2 Extensibility
+- **Requirement:** The system MUST support addition of new package managers
+- **Details:**
+  - Standardized function interfaces for package manager operations
+  - Consistent error handling patterns
+  - Uniform progress reporting mechanisms
+  - Modular command line option processing
+
+### 4.3 Unicode Emoji Integration Architecture
+- **Requirement:** The system MUST implement emoji enhancement through centralized utility functions
+- **Implementation Approach:**
+  - **Centralized Enhancement:** Core utility functions (`print_status`, `print_success`, `print_warning`, `print_error`) enhanced with emojis at the function level
+  - **Context-Aware Section Headers:** `print_section_header()` function enhanced to include contextual emojis based on package manager type
+  - **Backward Compatibility:** Emoji enhancement maintains full backward compatibility with existing function interfaces
+  - **Terminal Compatibility:** Unicode emojis selected for broad terminal and font support
+  - **Consistent Mapping:** Each message type and context mapped to specific emoji for consistent user experience
+- **Technical Benefits:**
+  - Enhanced visual communication without functional changes
+  - Improved user experience through immediate visual recognition
+  - Maintained script reliability and performance
+  - Cross-platform compatibility with modern terminal emulators
+
+## 5. Integration Requirements
+
+### 5.1 External System Dependencies
+- **Requirement:** The system MUST integrate with standard Linux package management tools
+- **Dependencies:**
+  - APT package manager (apt, apt-get, dpkg)
+  - APT update notification system (/usr/lib/update-notifier/apt-check)
+  - Snap package manager (snap command)
+  - Rust toolchain (rustup, cargo)
+  - Python package installer (pip3)
+  - Node.js package manager (npm)
+  - Standard Linux utilities (curl, wget, grep, awk, etc.)
+
+### 5.2 Network Dependencies
+- **Requirement:** The system MUST handle network connectivity requirements
+- **Details:**
+  - Package repository access for updates
+  - GitHub API access for version checking
+  - Download capabilities for direct software installation
+  - Graceful degradation when network is unavailable
+
+## 6. Data Requirements
+
+### 6.1 Input Data
+- Command line arguments and options
+- User interactive responses
+- System package manager databases
+- Network-retrieved version information
+- File system status and configuration
+
+### 6.2 Output Data
+- Formatted status and progress messages
+- Package operation results and statistics
+- System state changes and disk usage
+- Error reports and recovery suggestions
+- Final execution summary and recommendations
+
+## 7. Interface Specifications
+
+### 7.1 Command Line Interface
+
+#### Options:
+```bash
+-h, --help          Display comprehensive help information
+-v, --version       Display script version and metadata information
+--simple            Execute basic update and upgrade operations only
+-s, --stop          Interactive mode with user confirmation at each step
+-f, --full          Full system upgrade including distribution upgrade
+-c, --cleanup-only  Execute only cleanup and maintenance operations
+-l, --list          Display package count summary across all managers
+--list-detailed     Display detailed package information
+-q, --quiet         Suppress all non-error output
+```
+
+#### Exit Codes:
+- `0`: Successful completion
+- `1`: General error or user cancellation
+- `2`: Insufficient privileges
+- `3`: Network connectivity issues
+- `4`: Package manager errors
+- `5`: System integrity issues
+
+### 7.2 Output Format Specification
+
+#### Status Message Format:
+```
+[INFO] Informational messages in blue
+✅ Success messages in green (streamlined format without verbose [SUCCESS] text)
+[WARNING] Warning messages in yellow
+[ERROR] Error messages in red
+```
+
+#### Progress Indicators:
+- Step-by-step operation descriptions
+- Package count statistics
+- Before/after disk usage comparisons
+- Time estimates for long-running operations
+
+## 8. Quality Assurance Requirements
+
+### 8.1 Testing Requirements
+- Unit testing for individual functions
+- Integration testing across package managers
+- Error condition testing and recovery verification
+- Performance testing under various system loads
+- Security testing for privilege escalation and input validation
+
+### 8.2 Validation Criteria
+- All package managers function correctly after script execution
+- System integrity maintained throughout operation
+- User data and configurations preserved
+- Network failures handled gracefully
+- Resource utilization within acceptable limits
+
+## 9. Maintenance and Support Requirements
+
+### 9.1 Logging and Monitoring
+- Comprehensive operation logging to system logs
+- Error tracking and reporting mechanisms
+- Performance metrics collection
+- User action audit trail
+
+### 9.2 Update and Maintenance Procedures
+- Version control integration for script updates
+- Rollback procedures for problematic updates
+- Compatibility testing for new operating system versions
+- Regular security review and vulnerability assessment
+
+## 10. Change History
+
+### Version 1.1 (November 4, 2025) - Script Version 0.2.0
+- **Added FR-007: Pre-Update Verification System** - Intelligent update checking using apt-check
+- **Enhanced FR-001: APT Package Management** - Added pre-update verification capabilities
+- **Updated FR-011: Command Line Interface** - Added version display option (-v, --version)
+- **Enhanced NFR-001: Execution Time** - Performance improvements through operation skipping
+- **Updated External Dependencies** - Added apt-check utility requirement
+- **Enhanced Application Support** - Added Kitty terminal emulator update detection
+
+### Version 1.0 (October 28, 2025) - Script Version 0.1.0
+- Initial comprehensive technical specification
+- Complete functional and non-functional requirements definition
+- Architectural specifications and integration requirements
+- Quality assurance and maintenance procedures
+
+---
+
+*This technical specification serves as the authoritative definition of requirements for the src/system_update.sh script. All implementation must conform to these specifications to ensure reliable, secure, and maintainable operation.*

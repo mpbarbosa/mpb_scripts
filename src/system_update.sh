@@ -36,18 +36,18 @@
 #   - Network connectivity for package updates and version checking
 #
 # Author: mpb
-# Repository: https://github.com/mpbarbosa/scripts
+# Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
 #
 
 #=============================================================================
 # SCRIPT VERSION AND METADATA
 #=============================================================================
-readonly SCRIPT_VERSION="0.1.0"
+readonly SCRIPT_VERSION="0.2.0"
 readonly SCRIPT_NAME="system_update.sh"
 readonly SCRIPT_DESCRIPTION="Comprehensive Package Management and System Update Script"
 readonly SCRIPT_AUTHOR="mpb"
-readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/scripts"
+readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/mpb_scripts"
 
 #=============================================================================
 # COLOR DEFINITIONS AND OUTPUT FORMATTING
@@ -216,6 +216,163 @@ update_package_list() {
     ask_continue
 }
 
+# Check and configure unattended upgrades settings
+# This function verifies if automatic security updates are enabled and offers to enable them
+# if they're currently disabled. Unattended upgrades help keep the system secure by
+# automatically installing security updates without user intervention.
+check_unattended_upgrades() {
+    print_operation_header "🔒 Checking unattended upgrades configuration..."
+    
+    # Check if the configuration file exists
+    if [ ! -f "/etc/apt/apt.conf.d/20auto-upgrades" ]; then
+        print_warning "Unattended upgrades configuration file not found"
+        print_status "File: /etc/apt/apt.conf.d/20auto-upgrades"
+        print_status "Unattended upgrades may not be configured on this system"
+        return 0
+    fi
+    
+    # Check the current configuration using the suggested grep command
+    local unattended_config
+    unattended_config=$(grep "APT::Periodic::Unattended-Upgrade" /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null | grep -o '"[0-9]*"' | tr -d '"')
+    
+    if [ -z "$unattended_config" ]; then
+        print_warning "Unattended-Upgrade setting not found in configuration"
+        print_status "The system may not have unattended upgrades properly configured"
+        return 0
+    fi
+    
+    print_status "Current unattended upgrades setting: $unattended_config"
+    
+    if [ "$unattended_config" = "1" ]; then
+        print_success "✅ Unattended upgrades are ENABLED"
+        print_status "🔒 Your system will automatically install security updates"
+        print_status "📋 Configuration: APT::Periodic::Unattended-Upgrade \"1\""
+    else
+        print_warning "⚠️  Unattended upgrades are DISABLED"
+        print_status "🔓 Your system will NOT automatically install security updates"
+        print_status "📋 Current configuration: APT::Periodic::Unattended-Upgrade \"$unattended_config\""
+        print_status ""
+        
+        # Ask user if they want to enable unattended upgrades (only in interactive mode)
+        if [[ "${QUIET_MODE:-false}" == "false" ]]; then
+            print_status "💡 Enabling unattended upgrades is recommended for security"
+            print_status "   • Automatic installation of security updates"
+            print_status "   • Reduces exposure to known vulnerabilities"
+            print_status "   • Only installs updates from security repositories"
+            print_status ""
+            
+            echo -n -e "${MAGENTA}❓ [PROMPT]${NC} Would you like to enable unattended upgrades? (y/N): "
+            read -r enable_unattended
+            
+            case "$enable_unattended" in
+                [Yy]|[Yy][Ee][Ss])
+                    print_status "🔧 Enabling unattended upgrades..."
+                    
+                    # Create backup of current configuration
+                    if sudo cp /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/20auto-upgrades.backup.$(date +%Y%m%d_%H%M%S); then
+                        print_status "📋 Configuration backup created"
+                    fi
+                    
+                    # Enable unattended upgrades by setting the value to "1"
+                    if sudo sed -i 's/APT::Periodic::Unattended-Upgrade "0"/APT::Periodic::Unattended-Upgrade "1"/' /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null; then
+                        # Verify the change was successful
+                        local new_config
+                        new_config=$(grep "APT::Periodic::Unattended-Upgrade" /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null | grep -o '"[0-9]*"' | tr -d '"')
+                        
+                        if [ "$new_config" = "1" ]; then
+                            print_success "✅ Unattended upgrades successfully enabled!"
+                            print_status "🔒 Your system will now automatically install security updates"
+                            print_status "📅 Updates typically check daily and install during low-usage hours"
+                            print_status "📝 You can check logs in: /var/log/unattended-upgrades/"
+                        else
+                            print_error "❌ Failed to verify unattended upgrades configuration change"
+                        fi
+                    else
+                        print_error "❌ Failed to enable unattended upgrades"
+                        print_status "You may need to manually edit: /etc/apt/apt.conf.d/20auto-upgrades"
+                    fi
+                    ;;
+                *)
+                    print_status "⏭️  Unattended upgrades remain disabled"
+                    print_status "💡 You can enable them later by running: sudo dpkg-reconfigure unattended-upgrades"
+                    ;;
+            esac
+        else
+            print_status "💡 Consider enabling unattended upgrades for automatic security updates"
+            print_status "   Command: sudo dpkg-reconfigure unattended-upgrades"
+        fi
+    fi
+    
+    ask_continue
+}
+
+# Check if there are packages available for upgrade using apt-check
+# This function uses /usr/lib/update-notifier/apt-check to determine if updates are available
+# before attempting the upgrade operation, avoiding unnecessary apt-get upgrade calls
+#
+# Returns:
+#   0 - Updates are available and should proceed with upgrade
+#   1 - No updates available, skip upgrade operation
+check_updates_available() {
+    print_operation_header "🔍 Checking for available package updates..."
+    
+    # Verify apt-check utility exists
+    if [ ! -x "/usr/lib/update-notifier/apt-check" ]; then
+        print_warning "apt-check utility not found at /usr/lib/update-notifier/apt-check"
+        print_status "Proceeding with upgrade check using alternative method..."
+        
+        # Fallback: Use apt list --upgradable as alternative check
+        local upgradable_count=$(apt list --upgradable 2>/dev/null | grep -c "upgradable")
+        if [ "$upgradable_count" -gt 0 ]; then
+            print_status "Found $upgradable_count packages available for upgrade (via apt list)"
+            return 0
+        else
+            print_success "No packages available for upgrade (via apt list)"
+            return 1
+        fi
+    fi
+    
+    # Use apt-check to get update count
+    # apt-check outputs: "updates;security_updates" to stderr
+    local check_output
+    check_output=$(/usr/lib/update-notifier/apt-check 2>&1)
+    local check_exit_code=$?
+    
+    if [ $check_exit_code -ne 0 ]; then
+        print_warning "apt-check returned error code $check_exit_code"
+        print_status "Proceeding with upgrade operation anyway..."
+        return 0
+    fi
+    
+    # Parse the output: format is "updates;security_updates"
+    local total_updates=$(echo "$check_output" | cut -d';' -f1)
+    local security_updates=$(echo "$check_output" | cut -d';' -f2)
+    
+    # Validate that we got numeric values
+    if ! [[ "$total_updates" =~ ^[0-9]+$ ]] || ! [[ "$security_updates" =~ ^[0-9]+$ ]]; then
+        print_warning "Unable to parse apt-check output: '$check_output'"
+        print_status "Proceeding with upgrade operation anyway..."
+        return 0
+    fi
+    
+    # Report the findings
+    if [ "$total_updates" -eq 0 ]; then
+        print_success "✅ No package updates available - system is up to date"
+        return 1
+    else
+        print_status "📊 Update summary:"
+        print_status "  📦 Total updates available: $total_updates"
+        if [ "$security_updates" -gt 0 ]; then
+            print_status "  🔒 Security updates available: $security_updates"
+            print_warning "Security updates should be installed promptly"
+        else
+            print_status "  🔒 Security updates available: 0"
+        fi
+        print_status "Proceeding with package upgrade operation..."
+        return 0
+    fi
+}
+
 # Upgrade all installed packages to their latest available versions
 # This is the core function that handles package upgrades with intelligent
 # analysis of upgrade results, including special handling for "kept back" packages
@@ -227,6 +384,13 @@ update_package_list() {
 # - Demonstrates advanced hierarchical structure with complex branching logic and comprehensive status reporting
 # - Maintains visual hierarchy through success/failure paths and interactive elements
 upgrade_packages() {
+    # First check if there are any updates available before attempting upgrade
+    if ! check_updates_available; then
+        print_success "🎯 Skipping upgrade operation - no updates available"
+        ask_continue
+        return 0
+    fi
+    
     print_operation_header "🔄 Upgrading installed packages to latest versions..."
     
     # Capture both stdout and stderr from apt-get upgrade for comprehensive analysis
@@ -447,6 +611,12 @@ upgrade_packages() {
 #
 # USE WITH CAUTION: This operation can modify system behavior more extensively
 full_upgrade() {
+    # First check if there are any updates available before attempting dist-upgrade
+    if ! check_updates_available; then
+        print_success "🎯 Skipping dist-upgrade operation - no updates available"
+        ask_continue
+        return 0
+    fi
 
     print_operation_header "⚡ Performing comprehensive system upgrade (dist-upgrade)..."
     print_status "WARNING: This operation may install new packages or remove existing ones"
@@ -2124,14 +2294,14 @@ fi
 # Execute system_summary.sh if full mode is enabled
 if [ "$FULL_MODE" = true ]; then
     print_status "Full mode enabled - executing system_summary.sh first..."
-    if [ -f "./system_summary.sh" ]; then
-        if bash ./system_summary.sh; then
+    if [ -f "$(dirname "$0")/system_summary.sh" ]; then
+        if bash "$(dirname "$0")/system_summary.sh"; then
             true # system_summary.sh completed successfully
         else
             print_warning "system_summary.sh execution failed, continuing with apt operations..."
         fi
     else
-        print_warning "system_summary.sh not found in current directory, skipping..."
+        print_warning "system_summary.sh not found in script directory, skipping..."
     fi
     ask_continue
 fi
@@ -2144,6 +2314,7 @@ else
     check_broken_packages
     # APT Package Manager Operations
     print_section_header "APT PACKAGE MANAGER"
+    check_unattended_upgrades
     update_package_list
     upgrade_packages
     

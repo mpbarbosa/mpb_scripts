@@ -9,6 +9,8 @@ mpb_scripts/
 ├── src/                      # Shell scripts
 │   ├── system_update.sh      # Comprehensive package management and system updates
 │   └── system_summary.sh     # System information summary and diagnostics
+├── docs/                     # Technical documentation
+│   └── system_update_technical_specification.md
 ├── prompts/                  # Workflow and prompt files
 │   └── tests_documentation_update_enhanced.txt
 ├── LICENSE                   # MIT License
@@ -104,6 +106,14 @@ chmod +x src/*.sh
 ./src/system_update.sh
 ./src/system_summary.sh
 ```
+
+## Documentation
+
+### Technical Specifications
+
+The repository includes comprehensive technical documentation in the `docs/` directory:
+
+- **[system_update_technical_specification.md](docs/system_update_technical_specification.md)**: Complete technical specification for the system_update.sh script, including functional requirements, non-functional requirements, architecture specifications, and quality assurance procedures.
 
 ## Development
 

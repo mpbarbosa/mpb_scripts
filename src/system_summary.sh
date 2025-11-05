@@ -1,4 +1,33 @@
 #!/bin/bash
+#
+# system_summary.sh - System Information Summary Script
+#
+# This script provides a comprehensive overview of system information including
+# operating system details, storage, memory, network configuration, and package
+# manager statistics.
+#
+# Features:
+# - Operating system and distribution information
+# - Storage and file system analysis
+# - Memory and system resources monitoring
+# - Network configuration display
+# - Multi-package-manager statistics (apt, snap, pip, npm, cargo)
+# - Formatted table output for enhanced readability
+# - System environment and PATH information
+# - Termux mobile environment support
+#
+# Usage:
+#   ./system_summary.sh
+#
+# Dependencies:
+#   - Standard Linux utilities (df, free, ip, etc.)
+#   - Optional: lsb_release for detailed distribution information
+#   - Network connectivity for interface detection
+#
+# Author: mpb
+# Repository: https://github.com/mpbarbosa/mpb_scripts
+# License: MIT
+#
 
 # Color codes for consistent formatting (following system_update.sh standards)
 RED='\033[0;31m'
