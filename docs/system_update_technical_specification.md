@@ -4,7 +4,7 @@
 **Date:** November 4, 2025  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts  
-**Script Version:** 0.2.0 (Alpha)  
+**Script Version:** 0.3.0 (Alpha)  
 
 ## 1. Overview
 
@@ -500,6 +500,14 @@ This specification defines the functional and non-functional requirements for a 
 - Regular security review and vulnerability assessment
 
 ## 10. Change History
+
+### Version 1.2 (November 11, 2025) - Script Version 0.3.0
+- **Added FR-013: Pacman Package Manager Support** - Multi-platform support for Arch Linux
+- **Enhanced FR-001: Package Manager Detection** - Automatic detection of APT vs Pacman systems
+- **Updated Visual Communication** - Added 🏹 Pacman and 🤖 GitHub Copilot emojis
+- **Enhanced Cross-Platform Compatibility** - Support for Debian/Ubuntu (APT) and Arch Linux (Pacman)
+- **Added Pacman Operations**: Database updates, package upgrades, cache cleaning
+- **Updated Dependencies** - Added pacman package manager as optional dependency
 
 ### Version 1.1 (November 4, 2025) - Script Version 0.2.0
 - **Added FR-007: Pre-Update Verification System** - Intelligent update checking using apt-check

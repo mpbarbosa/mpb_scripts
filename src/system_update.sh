@@ -8,7 +8,7 @@
 # error handling and user interaction.
 #
 # Features:
-# - Multi-package-manager support (apt, snap, cargo, pip, npm)
+# - Multi-package-manager support (apt, pacman, snap, cargo, pip, npm)
 # - Interactive and quiet modes
 # - Intelligent handling of kept back packages
 # - Comprehensive package listing and statistics
@@ -43,7 +43,7 @@
 #=============================================================================
 # SCRIPT VERSION AND METADATA
 #=============================================================================
-readonly SCRIPT_VERSION="0.2.0"
+readonly SCRIPT_VERSION="0.3.0"
 readonly SCRIPT_NAME="system_update.sh"
 readonly SCRIPT_DESCRIPTION="Comprehensive Package Management and System Update Script"
 readonly SCRIPT_AUTHOR="mpb"
@@ -66,7 +66,7 @@ WHITE='\033[0;37m'    # White text for enhanced visibility and readability
 NC='\033[0m'          # No Color - resets terminal color to default
 
 
-[ -f ".bashrc" ] && source ".bashrc"
+[ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
 
 #=============================================================================
 # UTILITY FUNCTIONS FOR FORMATTED OUTPUT
@@ -114,12 +114,14 @@ print_section_header() {
     # Add appropriate emoji based on section name
     case "$section_name" in
         *"APT"*) emoji="📦" ;;
+        *"PACMAN"*) emoji="🏹" ;;
         *"DPKG"*) emoji="🔧" ;;
         *"SNAP"*) emoji="📱" ;;
         *"RUST"*|*"CARGO"*) emoji="🦀" ;;
         *"PYTHON"*|*"PIP"*) emoji="🐍" ;;
         *"NODE"*|*"NPM"*) emoji="📗" ;;
         *"KITTY"*) emoji="🐱" ;;
+        *"COPILOT"*|*"GITHUB"*) emoji="🤖" ;;
         *"CALIBRE"*) emoji="📚" ;;
         *"SYSTEM"*|*"UPGRADE"*) emoji="⚡" ;;
         *"INFORMATION"*|*"SUMMARY"*) emoji="ℹ️" ;;
@@ -159,6 +161,134 @@ show_version() {
     echo -e "${GREEN}Package Managers Supported:${NC}"
     echo "  📦 APT/DPKG    🦀 Rust/Cargo    🐍 Python pip"
     echo "  📱 Snap        📗 Node.js npm   📚 Calibre"
+}
+
+#=============================================================================
+# PACKAGE MANAGER DETECTION FUNCTIONS
+#=============================================================================
+
+# Detect which package manager is available on the system
+detect_package_manager() {
+    if command -v pacman &> /dev/null; then
+        echo "pacman"
+    elif command -v apt-get &> /dev/null; then
+        echo "apt"
+    else
+        echo "unknown"
+    fi
+}
+
+#=============================================================================
+# PACMAN PACKAGE MANAGER FUNCTIONS (Arch Linux)
+#=============================================================================
+
+# Update pacman package database
+update_pacman_database() {
+    print_operation_header "Updating package database from repositories..."
+    
+    if sudo pacman -Sy --noconfirm; then
+        print_success "Package database updated successfully"
+    else
+        print_error "Failed to update package database"
+        return 1
+    fi
+}
+
+# Upgrade all pacman packages
+upgrade_pacman_packages() {
+    print_operation_header "Upgrading installed packages..."
+    
+    # Check for available updates
+    local updates_available=$(pacman -Qu 2>/dev/null | wc -l)
+    
+    if [ "$updates_available" -eq 0 ]; then
+        print_success "All packages are up to date"
+        return 0
+    fi
+    
+    print_status "Found $updates_available package(s) to upgrade"
+    
+    if sudo pacman -Su --noconfirm; then
+        print_success "Package upgrade completed successfully"
+    else
+        print_error "Package upgrade failed"
+        return 1
+    fi
+}
+
+# Clean pacman cache
+clean_pacman_cache() {
+    print_operation_header "Cleaning package cache..."
+    
+    # Remove uninstalled packages from cache
+    if sudo pacman -Sc --noconfirm; then
+        print_success "Package cache cleaned successfully"
+    else
+        print_warning "Failed to clean package cache"
+    fi
+    
+    # Show cache size
+    local cache_size=$(du -sh /var/cache/pacman/pkg 2>/dev/null | cut -f1)
+    if [ -n "$cache_size" ]; then
+        print_status "Current cache size: $cache_size"
+    fi
+}
+
+# Remove orphaned packages (packages installed as dependencies but no longer needed)
+remove_pacman_orphans() {
+    print_operation_header "Removing orphaned packages..."
+    
+    local orphans=$(pacman -Qdtq 2>/dev/null)
+    
+    if [ -z "$orphans" ]; then
+        print_success "No orphaned packages found"
+        return 0
+    fi
+    
+    local orphan_count=$(echo "$orphans" | wc -l)
+    print_status "Found $orphan_count orphaned package(s)"
+    
+    if sudo pacman -Rns --noconfirm $orphans; then
+        print_success "Orphaned packages removed successfully"
+    else
+        print_warning "Failed to remove some orphaned packages"
+    fi
+}
+
+# List all pacman packages
+list_pacman_packages() {
+    local detailed="${1:-false}"
+    
+    print_operation_header "Listing installed Pacman packages..."
+    
+    local total=$(pacman -Q | wc -l)
+    print_status "Total Pacman packages: $total"
+    
+    if [ "$detailed" = "--detailed" ]; then
+        print_status "Package details:"
+        pacman -Q
+    fi
+}
+
+# Check for pacman configuration issues
+check_pacman_config() {
+    print_operation_header "Checking Pacman configuration..."
+    
+    # Check if pacman.conf exists and is valid
+    if [ ! -f /etc/pacman.conf ]; then
+        print_error "Pacman configuration file not found"
+        return 1
+    fi
+    
+    # Check if pacman database is locked
+    if [ -f /var/lib/pacman/db.lck ]; then
+        print_warning "Pacman database is locked"
+        print_status "If no pacman process is running, remove the lock file with:"
+        echo "  sudo rm /var/lib/pacman/db.lck"
+        return 1
+    fi
+    
+    print_success "Pacman configuration OK"
 }
 
 #=============================================================================
@@ -1544,7 +1674,7 @@ download_and_install_calibre() {
     echo
     
     # Run the installer with proper error handling
-    if bash "$installer_path" >/dev/null 2>&1; then
+    if sudo bash "$installer_path" >/dev/null 2>&1; then
         print_success "✓ Calibre installer completed successfully"
     else
         local install_exit_code=$?
@@ -1555,7 +1685,7 @@ download_and_install_calibre() {
         print_error "  - Permission problems"
         print_error "  - Conflicting processes using Calibre"
         print_status "You can try running the installer manually:"
-        print_status "  bash $installer_path"
+        print_status "  sudo bash $installer_path"
         rm -rf "$temp_dir"
         return 1
     fi
@@ -1617,6 +1747,64 @@ download_and_install_calibre() {
     print_status "  • Report any issues to: https://calibre-ebook.com/help"
     
     return 0
+}
+
+#=============================================================================
+# GITHUB COPILOT CLI UPDATE
+#=============================================================================
+# Updates the GitHub Copilot CLI to the latest version using npm.
+# The GitHub Copilot CLI provides AI-powered command-line assistance.
+#
+# This function:
+# - Detects if GitHub Copilot CLI is installed
+# - Updates to the latest version using npm global install
+# - Handles errors if npm or the CLI is not available
+# - Displays current and updated version information
+#
+# Note: Requires npm to be installed and configured for global package management
+update_github_copilot_cli() {
+    print_operation_header "🤖 Checking GitHub Copilot CLI updates..."
+    
+    # Check if npm is available
+    if ! command -v npm &> /dev/null; then
+        print_warning "📗 npm is not installed. Skipping GitHub Copilot CLI update."
+        return 0
+    fi
+    
+    # Check if GitHub Copilot CLI is installed
+    if ! command -v copilot &> /dev/null; then
+        print_status "🤖 GitHub Copilot CLI is not installed. Skipping update."
+        print_status "💡 To install: npm install -g @github/copilot"
+        return 0
+    fi
+    
+    # Get current version
+    local current_version=""
+    if copilot --version &> /dev/null; then
+        current_version=$(copilot --version 2>/dev/null | head -n 1)
+        print_status "Current GitHub Copilot CLI version: $current_version"
+    fi
+    
+    # Update GitHub Copilot CLI
+    print_status "📦 Updating GitHub Copilot CLI to latest version..."
+    if npm install -g @github/copilot 2>&1 | grep -v "^npm WARN"; then
+        print_success "🤖 GitHub Copilot CLI updated successfully"
+        
+        # Get new version
+        local new_version=""
+        if copilot --version &> /dev/null; then
+            new_version=$(copilot --version 2>/dev/null | head -n 1)
+            if [ "$current_version" != "$new_version" ]; then
+                print_status "🎉 Updated GitHub Copilot CLI version: $new_version"
+            else
+                print_status "✅ GitHub Copilot CLI is already up to date: $new_version"
+            fi
+        fi
+    else
+        print_error "Failed to update GitHub Copilot CLI"
+        print_status "Try manually with: npm install -g @github/copilot"
+        return 1
+    fi
 }
 
 # Check if Calibre e-book management software needs updating and optionally perform update
@@ -2008,6 +2196,18 @@ list_all_packages() {
     print_status "Listing all installed packages by package manager..."
     echo
     
+    # Pacman packages
+    if command -v pacman &> /dev/null; then
+        print_status "Pacman packages:"
+        local pacman_count=$(pacman -Q | wc -l)
+        echo "  Total Pacman packages: $pacman_count"
+        if [ "$1" = "--detailed" ]; then
+            echo "  Recent Pacman packages (last 10):"
+            pacman -Q | tail -10 | awk '{printf "    %-30s %s\n", $1, $2}'
+        fi
+        echo
+    fi
+    
     # APT/DPKG packages
     if command -v dpkg &> /dev/null; then
         print_status "APT/DPKG packages:"
@@ -2310,17 +2510,31 @@ if [ "$CLEANUP_ONLY" = true ]; then
     print_status "Running in cleanup-only mode"
     cleanup
 else
-    # Check for broken packages first
-    check_broken_packages
-    # APT Package Manager Operations
-    print_section_header "APT PACKAGE MANAGER"
-    check_unattended_upgrades
-    update_package_list
-    upgrade_packages
+    # Detect package manager
+    PKG_MANAGER=$(detect_package_manager)
     
-    # DPKG Package Manager Operations
-    print_section_header "DPKG PACKAGE MANAGER"
-    maintain_dpkg_packages
+    # Package Manager Specific Operations
+    if [ "$PKG_MANAGER" = "pacman" ]; then
+        # Pacman Package Manager Operations (Arch Linux)
+        print_section_header "PACMAN PACKAGE MANAGER"
+        check_pacman_config
+        update_pacman_database
+        upgrade_pacman_packages
+    elif [ "$PKG_MANAGER" = "apt" ]; then
+        # Check for broken packages first
+        check_broken_packages
+        # APT Package Manager Operations
+        print_section_header "APT PACKAGE MANAGER"
+        check_unattended_upgrades
+        update_package_list
+        upgrade_packages
+        
+        # DPKG Package Manager Operations
+        print_section_header "DPKG PACKAGE MANAGER"
+        maintain_dpkg_packages
+    else
+        print_warning "No supported package manager detected (apt or pacman)"
+    fi
     
     # Snap Package Manager Operations
     print_section_header "SNAP PACKAGE MANAGER"
@@ -2342,6 +2556,10 @@ else
     print_section_header "KITTY TERMINAL EMULATOR"
     check_kitty_update
     
+    # GitHub Copilot CLI Updates
+    print_section_header "GITHUB COPILOT CLI"
+    update_github_copilot_cli
+    
     # Calibre Application Updates
     print_section_header "CALIBRE APPLICATION"
     check_calibre_update
@@ -2349,12 +2567,21 @@ else
     # System Upgrade Operations (only in full mode)
     if [ "$FULL_MODE" = true ]; then
         print_section_header "SYSTEM UPGRADE"
-        full_upgrade
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            full_upgrade
+        elif [ "$PKG_MANAGER" = "pacman" ]; then
+            print_status "Full system upgrade already performed with pacman -Syu"
+        fi
     fi
     
     # Cleanup unless in simple mode
     if [ "$SIMPLE_MODE" = false ]; then
-        cleanup
+        if [ "$PKG_MANAGER" = "pacman" ]; then
+            clean_pacman_cache
+            remove_pacman_orphans
+        elif [ "$PKG_MANAGER" = "apt" ]; then
+            cleanup
+        fi
     fi
 fi
 
@@ -2364,7 +2591,11 @@ print_success "Comprehensive system update and package management script complet
 
 # Show summary of installed packages
 print_status "Summary of installed packages:"
-apt list --installed 2>/dev/null | wc -l | awk '{print "Total installed packages: " $1}'
+if [ "$PKG_MANAGER" = "pacman" ]; then
+    pacman -Q | wc -l | awk '{print "Total installed packages: " $1}'
+elif [ "$PKG_MANAGER" = "apt" ]; then
+    apt list --installed 2>/dev/null | wc -l | awk '{print "Total installed packages: " $1}'
+fi
 
 # Check if reboot is required
 if [ -f /var/run/reboot-required ]; then

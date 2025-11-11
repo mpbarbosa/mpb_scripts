@@ -24,10 +24,12 @@ mpb_scripts/
 Comprehensive package management and system update script that automates package updates across multiple package managers.
 
 **Features:**
-- Multi-package-manager support (apt, snap, cargo, pip, npm)
+- Multi-package-manager support (apt, pacman, snap, cargo, pip, npm)
+- Cross-platform support (Debian/Ubuntu with APT, Arch Linux with Pacman)
 - Interactive and quiet modes
 - Intelligent handling of kept back packages
 - Comprehensive package listing and statistics
+- GitHub Copilot CLI automatic updates
 - Calibre update checking
 - Detailed error analysis and recovery suggestions
 - Progress tracking and user confirmation options
@@ -49,8 +51,9 @@ Options:
 
 **Dependencies:**
 - sudo privileges for system package operations
-- Various package managers (detected automatically): apt, snap, cargo, pip, npm
+- Various package managers (detected automatically): apt or pacman (base system), snap, cargo, pip, npm
 - Network connectivity for package updates
+- Node.js and npm (for GitHub Copilot CLI updates)
 
 ### system_summary.sh
 
@@ -81,7 +84,7 @@ System information summary script that provides a comprehensive overview of syst
 - Standard Linux utilities
 
 **Optional (for full functionality):**
-- apt (Debian/Ubuntu package manager)
+- apt (Debian/Ubuntu package manager) OR pacman (Arch Linux package manager)
 - snap (Snap package manager)
 - cargo (Rust package manager)
 - pip3 (Python package manager)
@@ -92,7 +95,7 @@ System information summary script that provides a comprehensive overview of syst
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/mpbarbosa/mpb_scripts.git
+git clone https://github.com/mpbarbosa/scripts.git
 cd mpb_scripts
 ```
 
