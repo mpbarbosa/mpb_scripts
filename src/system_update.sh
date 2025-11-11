@@ -66,7 +66,7 @@ WHITE='\033[0;37m'    # White text for enhanced visibility and readability
 NC='\033[0m'          # No Color - resets terminal color to default
 
 
-[ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
+[ -f ".bashrc" ] && source ".bashrc"
 
 #=============================================================================
 # UTILITY FUNCTIONS FOR FORMATTED OUTPUT

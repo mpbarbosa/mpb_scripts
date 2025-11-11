@@ -1,10 +1,10 @@
 # Technical Specification: src/system_update.sh
 
-**Document Version:** 1.1  
-**Date:** November 4, 2025  
+**Document Version:** 1.2  
+**Date:** November 11, 2025  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts  
-**Script Version:** 0.3.0 (Alpha)  
+**Script Version:** 0.4.0 (Alpha)  
 
 ## 1. Overview
 

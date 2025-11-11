@@ -7,8 +7,23 @@ Linux shell scripts for system automation and maintenance.
 ```
 mpb_scripts/
 ├── src/                      # Shell scripts
-│   ├── system_update.sh      # Comprehensive package management and system updates
-│   └── system_summary.sh     # System information summary and diagnostics
+│   ├── system_update.sh      # Comprehensive package management (monolithic version)
+│   ├── system_summary.sh     # System information summary and diagnostics
+│   └── system_update/        # Modular system_update (refactored version)
+│       ├── system_update.sh  # Main orchestrator script
+│       ├── lib/              # Package manager modules
+│       │   ├── core_lib.sh
+│       │   ├── apt_manager.sh
+│       │   ├── pacman_manager.sh
+│       │   ├── dpkg_manager.sh
+│       │   ├── snap_manager.sh
+│       │   ├── cargo_manager.sh
+│       │   ├── pip_manager.sh
+│       │   ├── npm_manager.sh
+│       │   └── app_managers.sh
+│       ├── README.md         # Modular architecture documentation
+│       ├── ARCHITECTURE.md   # Visual architecture diagrams
+│       └── REFACTORING_SUMMARY.md
 ├── docs/                     # Technical documentation
 │   └── system_update_technical_specification.md
 ├── prompts/                  # Workflow and prompt files
@@ -23,6 +38,10 @@ mpb_scripts/
 
 Comprehensive package management and system update script that automates package updates across multiple package managers.
 
+**Available Versions:**
+- **Monolithic** (`src/system_update.sh`): Single-file version (v0.3.0) - stable, production-ready
+- **Modular** (`src/system_update/`): Refactored architecture (v0.4.0) - improved maintainability
+
 **Features:**
 - Multi-package-manager support (apt, pacman, snap, cargo, pip, npm)
 - Cross-platform support (Debian/Ubuntu with APT, Arch Linux with Pacman)
@@ -33,20 +52,25 @@ Comprehensive package management and system update script that automates package
 - Calibre update checking
 - Detailed error analysis and recovery suggestions
 - Progress tracking and user confirmation options
+- Modular architecture with high cohesion and loose coupling (modular version)
 
 **Usage:**
 ```bash
+# Monolithic version
 ./src/system_update.sh [OPTIONS]
+
+# Modular version
+./src/system_update/system_update.sh [OPTIONS]
 
 Options:
   -h, --help              Show help message
   -v, --version           Show version information
-  -s, --stop              Stop before each major operation (interactive mode)
+  -s, --simple            Simple mode (skip cleanup)
   -f, --full              Full upgrade mode (includes system_summary.sh and dist-upgrade)
-  -c, --cleanup-only      Only run cleanup operations
+  -c, --cleanup           Cleanup only mode
   -l, --list              List all installed packages across all package managers
   --list-detailed         Show detailed package information
-  -q, --quiet             Suppress all output
+  -q, --quiet             Quiet mode (no prompts)
 ```
 
 **Dependencies:**
@@ -54,6 +78,15 @@ Options:
 - Various package managers (detected automatically): apt or pacman (base system), snap, cargo, pip, npm
 - Network connectivity for package updates
 - Node.js and npm (for GitHub Copilot CLI updates)
+
+**Modular Architecture Benefits:**
+- High cohesion: Each module has a single, well-defined responsibility
+- Loose coupling: Modules are independent and testable
+- Easy to maintain: 42-560 lines per module vs. 2,606 lines in monolithic version
+- Reusable: Individual modules can be sourced in other scripts
+- Extensible: Add new package managers without modifying existing code
+
+See [src/system_update/README.md](src/system_update/README.md) for detailed modular architecture documentation.
 
 ### system_summary.sh
 
@@ -95,7 +128,7 @@ System information summary script that provides a comprehensive overview of syst
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/mpbarbosa/scripts.git
+git clone https://github.com/mpbarbosa/mpb_scripts.git
 cd mpb_scripts
 ```
 
