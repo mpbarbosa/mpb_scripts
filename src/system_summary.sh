@@ -243,6 +243,10 @@ else
     }
     echo -e "${GREEN}✅${NC} Package manager analysis completed"
     
+    # Continuation prompt to avoid scrolling
+    echo -e "\n${CYAN}Press any key to continue...${NC}"
+    read -n 1 -s
+    
     print_operation_header "⏰ System Runtime and Performance"
     uptime_info=$(uptime)
     print_substep "⏱️  System Status: $uptime_info"

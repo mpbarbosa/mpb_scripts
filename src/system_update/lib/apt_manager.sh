@@ -48,10 +48,17 @@ update_package_list() {
     if [ $exit_code -eq 0 ]; then
         print_success "📋 Package list updated successfully - local cache now current"
     else
-        print_error "🌐 Failed to update package list"
-        print_error "🔍 Common causes: network connectivity, repository issues, GPG key problems"
-        print_error "🛠️  Check network connection and repository configuration"
-        exit 1
+        # Check if output contains repository-specific errors (not critical failures)
+        if echo "$apt_output" | grep -qi "does not have a Release file\|404.*Not Found\|Failed to fetch"; then
+            print_warning "🌐 Some repositories failed to update"
+            print_status "🔍 Repository issues detected - continuing with available repositories"
+            print_status "💡 You may want to review repository configuration later"
+        else
+            print_error "🌐 Critical failure updating package list"
+            print_error "🔍 Common causes: network connectivity, repository issues, GPG key problems"
+            print_error "🛠️  Check network connection and repository configuration"
+            exit 1
+        fi
     fi
     
     ask_continue

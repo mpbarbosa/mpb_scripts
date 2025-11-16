@@ -177,11 +177,11 @@ BEFORE (Monolithic)                 AFTER (Modular)
 ================================================================================
 
 ORIGINAL SCRIPT LOCATION:
-/home/mpb/Documents/GitHub/mpb_scripts/src/system_update.sh
+/home/mpb/Documents/GitHub/scripts/src/system_update.sh
 (Remains unchanged - still functional)
 
 NEW MODULAR VERSION:
-/home/mpb/Documents/GitHub/mpb_scripts/src/system_update/system_update.sh
+/home/mpb/Documents/GitHub/scripts/src/system_update/system_update.sh
 
 MIGRATION OPTIONS:
 1. Keep using original (no changes required)

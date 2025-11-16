@@ -81,6 +81,4 @@ update_rust_packages() {
     update_rustup_toolchain
     update_rust_toolchains
     update_cargo_packages
-    
-    ask_continue
 }

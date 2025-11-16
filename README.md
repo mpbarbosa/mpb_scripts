@@ -100,6 +100,7 @@ System information summary script that provides a comprehensive overview of syst
 - Multi-package-manager statistics (apt, snap, pip, npm, cargo)
 - Formatted table output for enhanced readability
 - System environment and PATH information
+- Interactive continuation prompts to control output scrolling
 
 **Usage:**
 ```bash

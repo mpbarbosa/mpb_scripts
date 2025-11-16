@@ -333,6 +333,10 @@ check_kitty_update
 print_section_header "GITHUB COPILOT CLI"
 update_github_copilot_cli
 
+# VSCode Insiders Updates
+print_section_header "VSCODE INSIDERS"
+check_vscode_insiders_update
+
 # Calibre Application Updates
 print_section_header "CALIBRE APPLICATION"
 check_calibre_update
