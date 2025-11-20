@@ -85,7 +85,7 @@ The main script maintains **100% backward compatibility** with the original:
 - `update_package_list()` - Update APT cache
 - `check_unattended_upgrades()` - Configure automatic updates
 - `check_updates_available()` - Check for available updates
-- `upgrade_packages()` - Upgrade packages with kept-back handling
+- `upgrade_packages()` - Upgrade packages with kept-back handling (uses `apt upgrade`)
 - `full_upgrade()` - Dist-upgrade operation
 - `cleanup()` - Autoremove and autoclean
 - `check_broken_packages()` - Fix broken packages
@@ -168,7 +168,7 @@ cd src/system_update
 
 ## Version
 
-- **Version**: 0.4.0 (Modular)
+- **Version**: 0.4.1 (Modular)
 - **Original Version**: 0.3.0 (Monolithic)
 - **Author**: mpb
 - **Repository**: https://github.com/mpbarbosa/mpb_scripts

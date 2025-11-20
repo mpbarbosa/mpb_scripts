@@ -151,6 +151,7 @@ chmod +x src/*.sh
 The repository includes comprehensive technical documentation in the `docs/` directory:
 
 - **[system_update_technical_specification.md](docs/system_update_technical_specification.md)**: Complete technical specification for the system_update.sh script, including functional requirements, non-functional requirements, architecture specifications, and quality assurance procedures.
+- **[system_update_design_document.md](docs/system_update_design_document.md)**: Architectural design document describing implementation strategy, modular architecture, component relationships, and design patterns.
 
 ## Development
 

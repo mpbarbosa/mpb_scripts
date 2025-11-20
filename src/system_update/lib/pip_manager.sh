@@ -4,7 +4,7 @@
 #
 # Handles Python package updates via pip.
 #
-# Version: 0.4.0
+# Version: 0.4.1
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -38,7 +38,7 @@ update_pip_packages() {
             case "$response" in
                 [Yy]|[Yy][Ee][Ss])
                     print_status "Updating pip packages..."
-                    pip3 list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1 | xargs -n1 pip3 install -U 2>&1 | head -50
+                    pip3 list --outdated | tail -n +3 | awk '{print $1}' | xargs -n1 pip3 install -U 2>&1 | head -50
                     print_success "Pip packages updated"
                     ;;
                 *)

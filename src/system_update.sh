@@ -325,6 +325,10 @@ update_pip_packages
 print_section_header "NODE.JS NPM PACKAGE MANAGER"
 update_npm_packages
 
+# Node.js Updates
+print_section_header "NODE.JS"
+check_nodejs_update
+
 # Kitty Terminal Emulator Updates
 print_section_header "KITTY TERMINAL EMULATOR"
 check_kitty_update

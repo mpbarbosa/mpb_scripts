@@ -5,7 +5,7 @@
 # Handles all APT/DPKG package operations including updates, upgrades,
 # dependency management, and cleanup operations.
 #
-# Version: 0.4.0
+# Version: 0.4.1
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -151,7 +151,8 @@ check_updates_available() {
         print_warning "apt-check utility not found at /usr/lib/update-notifier/apt-check"
         print_status "Proceeding with upgrade check using alternative method..."
         
-        local upgradable_count=$(apt list --upgradable 2>/dev/null | grep -c "upgradable")
+        local upgradable_count
+        upgradable_count=$(apt list --upgradable 2>/dev/null | grep -c "upgradable")
         if [ "$upgradable_count" -gt 0 ]; then
             print_status "Found $upgradable_count packages available for upgrade (via apt list)"
             return 0
@@ -164,16 +165,18 @@ check_updates_available() {
     local check_output
     check_output=$(/usr/lib/update-notifier/apt-check 2>&1)
     local check_exit_code=$?
-    
+
     if [ $check_exit_code -ne 0 ]; then
         print_warning "apt-check returned error code $check_exit_code"
         print_status "Proceeding with upgrade operation anyway..."
         return 0
     fi
-    
-    local total_updates=$(echo "$check_output" | cut -d';' -f1)
-    local security_updates=$(echo "$check_output" | cut -d';' -f2)
-    
+
+    local total_updates
+    total_updates=$(echo "$check_output" | cut -d';' -f1)
+    local security_updates
+    security_updates=$(echo "$check_output" | cut -d';' -f2)
+
     if ! [[ "$total_updates" =~ ^[0-9]+$ ]] || ! [[ "$security_updates" =~ ^[0-9]+$ ]]; then
         print_warning "Unable to parse apt-check output: '$check_output'"
         print_status "Proceeding with upgrade operation anyway..."
@@ -207,7 +210,7 @@ upgrade_packages() {
     print_operation_header "🔄 Upgrading installed packages to latest versions..."
     
     local upgrade_output
-    upgrade_output=$(sudo apt-get upgrade -y 2>&1)
+    upgrade_output=$(sudo apt upgrade -y 2>&1)
     local upgrade_exit_code=$?
     
     local previous_line=""
@@ -245,8 +248,10 @@ upgrade_packages() {
     
     if [ $upgrade_exit_code -eq 0 ]; then
         if echo "$upgrade_output" | grep -q "kept back"; then
-            local kept_back_packages=$(echo "$upgrade_output" | grep -A 1 "kept back:" | tail -1 | xargs)
-            local kept_back_count=$(echo "$kept_back_packages" | wc -w)
+            local kept_back_packages
+            kept_back_packages=$(echo "$upgrade_output" | grep -A 1 "kept back:" | tail -1 | xargs)
+            local kept_back_count
+            kept_back_count=$(echo "$kept_back_packages" | wc -w)
             
             print_warning "$kept_back_count packages were kept back: $kept_back_packages"
             print_status "📝 Kept back packages usually need 'dist-upgrade' or have dependency conflicts"
@@ -293,10 +298,13 @@ upgrade_packages() {
                             print_status "Analyzing individual kept back packages:"
                             for package in $kept_back_packages; do
                                 print_status "Checking $package..."
-                                local policy_output=$(apt-cache policy "$package" 2>/dev/null)
+                                local policy_output
+                                policy_output=$(apt-cache policy "$package" 2>/dev/null)
                                 if echo "$policy_output" | grep -q "Installed:"; then
-                                    local installed_version=$(echo "$policy_output" | grep "Installed:" | awk '{print $2}')
-                                    local candidate_version=$(echo "$policy_output" | grep "Candidate:" | awk '{print $2}')
+                                    local installed_version
+                                    installed_version=$(echo "$policy_output" | grep "Installed:" | awk '{print $2}')
+                                    local candidate_version
+                                    candidate_version=$(echo "$policy_output" | grep "Candidate:" | awk '{print $2}')
                                     print_status "  $package: $installed_version → $candidate_version (upgrade available)"
                                 fi
                             done
@@ -313,10 +321,13 @@ upgrade_packages() {
                 print_status ""
                 print_status "Kept back package analysis (quiet mode):"
                 for package in $kept_back_packages; do
-                    local policy_output=$(apt-cache policy "$package" 2>/dev/null)
+                    local policy_output
+                    policy_output=$(apt-cache policy "$package" 2>/dev/null)
                     if echo "$policy_output" | grep -q "Installed:"; then
-                        local installed_version=$(echo "$policy_output" | grep "Installed:" | awk '{print $2}')
-                        local candidate_version=$(echo "$policy_output" | grep "Candidate:" | awk '{print $2}')
+                        local installed_version
+                        installed_version=$(echo "$policy_output" | grep "Installed:" | awk '{print $2}')
+                        local candidate_version
+                        candidate_version=$(echo "$policy_output" | grep "Candidate:" | awk '{print $2}')
                         print_status "  $package: $installed_version → $candidate_version"
                     fi
                 done
@@ -332,8 +343,10 @@ upgrade_packages() {
                 print_success "🛡️  System is current with latest available package versions"
             fi
         else
-            local upgraded_count=$(echo "$upgrade_output" | grep -o '[0-9]\+ upgraded' | grep -o '[0-9]\+' | head -1)
-            local installed_count=$(echo "$upgrade_output" | grep -o '[0-9]\+ newly installed' | grep -o '[0-9]\+' | head -1)
+            local upgraded_count
+            upgraded_count=$(echo "$upgrade_output" | grep -o '[0-9]\+ upgraded' | grep -o '[0-9]\+' | head -1)
+            local installed_count
+            installed_count=$(echo "$upgrade_output" | grep -o '[0-9]\+ newly installed' | grep -o '[0-9]\+' | head -1)
             
             if [ -n "$upgraded_count" ] && [ "$upgraded_count" -gt 0 ]; then
                 print_success "Successfully upgraded $upgraded_count packages to newer versions"
@@ -506,7 +519,8 @@ cleanup() {
 check_broken_packages() {
     print_operation_header "🔍 Performing comprehensive package integrity check..."
     
-    local audit_output=$(dpkg --audit 2>/dev/null)
+    local audit_output
+    audit_output=$(dpkg --audit 2>/dev/null)
     
     if echo "$audit_output" | grep -q .; then
         print_warning "Found broken or partially configured packages"
@@ -527,7 +541,8 @@ check_broken_packages() {
             print_status "Manual intervention may be required for complex configuration issues"
         fi
         
-        local post_repair_audit=$(dpkg --audit 2>/dev/null)
+        local post_repair_audit
+        post_repair_audit=$(dpkg --audit 2>/dev/null)
         if echo "$post_repair_audit" | grep -q .; then
             print_warning "Some package issues remain after automatic repair"
             print_status "Consider manual package management for remaining issues"

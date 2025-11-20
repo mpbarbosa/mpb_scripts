@@ -252,9 +252,21 @@ The refactoring successfully achieved:
 
 The new architecture follows software engineering best practices while preserving all original functionality.
 
+## Changelog
+
+### Version 0.4.1 (2024-11-19)
+- **Changed:** Updated `upgrade_packages()` to use modern `apt upgrade` command instead of `apt-get upgrade`
+- **Rationale:** The `apt` command provides a more user-friendly interface and is the recommended command-line tool for package management on Debian-based systems
+- **Impact:** No functional changes - both commands perform the same operation
+
+### Version 0.4.0 (2024-11-11)
+- Initial modular refactoring from monolithic 2606-line script
+- Separated concerns into dedicated modules following SRP
+- Achieved high cohesion and loose coupling
+
 ---
 
-**Date:** 2024-11-11  
+**Date:** 2024-11-19  
 **Refactored By:** AI Assistant (Claude)  
-**Version:** 0.4.0 (Modular)  
+**Version:** 0.4.1 (Modular)  
 **Original Version:** 0.3.0 (Monolithic)

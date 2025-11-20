@@ -196,9 +196,10 @@ Each module contains **strongly related functions**:
 apt_manager.sh
 ├── update_package_list()        ◄─── All APT-specific
 ├── upgrade_packages()            ◄─── operations grouped
-├── full_upgrade()                ◄─── together
+│   (uses apt upgrade)            ◄─── (modern apt command)
+├── full_upgrade()                ◄─── 
 ├── cleanup()                     ◄─── 
-└── check_broken_packages()       ◄─── 
+└── check_broken_packages()       ◄───  
 
 core_lib.sh
 ├── print_status()                ◄─── All formatting

@@ -1,7 +1,7 @@
-# Technical Specification: src/system_update.sh
+# Technical Specification: src/system_update/system_update.sh
 
-**Document Version:** 1.2  
-**Date:** November 11, 2025  
+**Document Version:** 1.3  
+**Date:** November 19, 2025  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts  
 **Script Version:** 0.4.0 (Alpha)  
@@ -9,16 +9,19 @@
 ## 1. Overview
 
 ### 1.1 Purpose
-The `src/system_update.sh` script provides comprehensive package management and system maintenance capabilities across multiple package managers and software distribution methods. The system shall automate routine maintenance tasks while providing intelligent error handling, user interaction options, and detailed progress reporting.
+
+The `src/system_update/system_update.sh` script provides comprehensive package management and system maintenance capabilities across multiple package managers and software distribution methods. The system shall automate routine maintenance tasks while providing intelligent error handling, user interaction options, and detailed progress reporting through a modular architecture.
 
 ### 1.2 Scope
-This specification defines the functional and non-functional requirements for a multi-package-manager update system supporting APT, Snap, Rust/Cargo, Python pip, Node.js npm, and specialized software like Calibre e-book management.
+
+This specification defines the functional and non-functional requirements for a modular multi-package-manager update system supporting APT (Debian/Ubuntu), Pacman (Arch Linux), Snap, Rust/Cargo, Python pip, Node.js npm, and specialized software including Kitty terminal, Calibre e-book manager, GitHub Copilot CLI, VSCode Insiders, and Node.js version checking.
 
 ## 2. Functional Requirements
 
 ### 2.1 Core Package Management Operations
 
 #### FR-001: APT Package Management
+
 - **Requirement:** The system MUST support full APT package lifecycle management with intelligent pre-update verification
 - **Details:**
   - **Pre-Update Verification:** Check for available updates using `/usr/lib/update-notifier/apt-check` before attempting upgrade operations
@@ -35,6 +38,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** APT operations complete without leaving system in inconsistent state, unnecessary operations are skipped when no updates available
 
 #### FR-002: Snap Package Management
+
 - **Requirement:** The system MUST manage Snap packages when Snap is available
 - **Details:**
   - Detect Snap package manager availability
@@ -46,6 +50,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** All available Snap updates applied successfully
 
 #### FR-003: Rust/Cargo Package Management
+
 - **Requirement:** The system MUST update Rust toolchain and Cargo packages through modular components
 - **Details:**
   - **Rustup Self-Update**: Update rustup toolchain manager to latest version
@@ -58,6 +63,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Rust environment remains functional after updates, modular failures don't prevent other operations
 
 #### FR-004: Python Package Management
+
 - **Requirement:** The system MUST manage Python packages via pip
 - **Details:**
   - Update pip itself to latest version
@@ -69,6 +75,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Python packages updated without breaking dependencies
 
 #### FR-005: Node.js Package Management
+
 - **Requirement:** The system MUST manage global npm packages
 - **Details:**
   - Update npm package manager itself
@@ -80,18 +87,23 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Node.js environment remains stable after updates
 
 #### FR-006: Application-Specific Updates
-- **Requirement:** The system MUST support specialized application updates
+
+- **Requirement:** The system MUST support specialized application updates through modular app_managers.sh
 - **Details:**
-  - Detect Calibre e-book management software installation
-  - Detect Kitty terminal emulator installation and updates
-  - Compare installed version with latest GitHub release
+  - **Kitty Terminal Emulator:** Detect installation and check for updates via GitHub releases
+  - **Calibre E-book Manager:** Detect installation, compare versions, and offer updates
+  - **GitHub Copilot CLI:** Update using npm global package manager
+  - **VSCode Insiders:** Detect installation and check for updates
+  - **Node.js:** Check for Node.js version updates and provide installation guidance
+  - Compare installed version with latest releases (GitHub API for applicable apps)
   - Provide user choice for update installation
-  - Support multiple installation methods (package manager, direct download)
-- **Input:** User confirmation for updates
-- **Output:** Version comparison results, update success status
-- **Acceptance Criteria:** Application updates preserve user configurations
+  - Support multiple installation methods (package manager, direct download, npm)
+- **Input:** User confirmation for updates (when applicable)
+- **Output:** Version comparison results, update success status, installation instructions
+- **Acceptance Criteria:** Application updates preserve user configurations and function correctly
 
 #### FR-007: Pre-Update Verification System
+
 - **Requirement:** The system MUST implement intelligent pre-update verification to optimize performance and user experience
 - **Details:**
   - **Primary Verification:** Use `/usr/lib/update-notifier/apt-check` to determine update availability before operations
@@ -108,6 +120,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 2.2 System Maintenance Operations
 
 #### FR-008: Package Database Maintenance
+
 - **Requirement:** The system MUST maintain package database integrity
 - **Details:**
   - Perform dpkg database consistency checks
@@ -119,6 +132,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Package database returns to consistent state
 
 #### FR-009: System Cleanup Operations
+
 - **Requirement:** The system MUST perform comprehensive cleanup
 - **Details:**
   - Remove orphaned packages (autoremove)
@@ -130,6 +144,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** System freed of unnecessary files without removing needed packages
 
 #### FR-010: Disk Space Management
+
 - **Requirement:** The system MUST monitor and report disk usage
 - **Details:**
   - Display disk usage before operations begin
@@ -143,6 +158,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 2.3 User Interface Requirements
 
 #### FR-011: Command Line Interface
+
 - **Requirement:** The system MUST provide comprehensive CLI options
 - **Details:**
   - Support help display (`-h`, `--help`)
@@ -159,6 +175,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** All documented options function as specified
 
 #### FR-012: Interactive User Confirmation
+
 - **Requirement:** The system MUST provide user interaction capabilities
 - **Details:**
   - Allow user to confirm continuation after each major step
@@ -170,6 +187,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** User can control script execution flow
 
 #### FR-013: Progress Reporting
+
 - **Requirement:** The system MUST provide comprehensive progress feedback
 - **Details:**
   - Use color-coded status messages (INFO, SUCCESS, WARNING, ERROR)
@@ -182,6 +200,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** User can follow script progress and understand outcomes
 
 #### FR-014: Output Hierarchical Structure
+
 - **Requirement:** The system MUST organize output using a consistent three-tier hierarchical structure
 - **Details:**
   - **Tier 1 - Package Manager Headers:** Top-level visual separators using white text on blue background
@@ -203,6 +222,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** All script output follows consistent hierarchical structure with appropriate visual formatting
 
 #### FR-015: Unicode Emoji Enhancement
+
 - **Requirement:** The system MUST use Unicode emojis to enhance user experience and visual communication
 - **Details:**
   - **Status Message Enhancement:** Core utility functions enhanced with contextual emojis
@@ -234,6 +254,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 2.4 Package Information and Statistics
 
 #### FR-016: Package Inventory Management
+
 - **Requirement:** The system MUST provide comprehensive package listing
 - **Details:**
   - Count packages across all supported package managers
@@ -249,6 +270,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 3.1 Performance Requirements
 
 #### NFR-001: Execution Time
+
 - **Requirement:** The system MUST complete standard operations within reasonable timeframes with intelligent operation skipping
 - **Details:**
   - Pre-update verification: < 5 seconds (significant performance improvement)
@@ -261,6 +283,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Operations complete within specified timeframes 95% of the time, unnecessary operations eliminated
 
 #### NFR-002: Resource Utilization
+
 - **Requirement:** The system MUST operate within reasonable resource constraints
 - **Details:**
   - Memory usage: < 100MB peak during operation
@@ -273,6 +296,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 3.2 Reliability Requirements
 
 #### NFR-003: Error Handling and Recovery
+
 - **Requirement:** The system MUST handle errors gracefully without system corruption
 - **Details:**
   - Network connectivity failures must not leave partial updates
@@ -283,6 +307,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** System remains in consistent state after any error condition
 
 #### NFR-004: Data Integrity
+
 - **Requirement:** The system MUST maintain package database and system integrity
 - **Details:**
   - Package operations must be atomic where possible
@@ -295,6 +320,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 3.3 Security Requirements
 
 #### NFR-005: Privilege Management
+
 - **Requirement:** The system MUST operate with appropriate security privileges using selective privilege escalation
 - **Details:**
   - Run in user context to preserve environment variables and user configurations
@@ -306,6 +332,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** No operations performed without appropriate privileges, user environment preserved
 
 #### NFR-006: Input Validation
+
 - **Requirement:** The system MUST validate all external inputs
 - **Details:**
   - Command line arguments must be validated
@@ -318,16 +345,26 @@ This specification defines the functional and non-functional requirements for a 
 ### 3.4 Compatibility Requirements
 
 #### NFR-007: Operating System Support
-- **Requirement:** The system MUST support specified Linux distributions
+
+- **Requirement:** The system MUST support specified Linux distributions with automatic package manager detection
 - **Details:**
-  - Ubuntu 18.04 LTS and newer
-  - Debian 10 and newer
-  - Linux Mint 19 and newer
-  - Other APT-based distributions with standard package layouts
+  - **APT-based distributions:**
+    - Ubuntu 18.04 LTS and newer
+    - Debian 10 and newer
+    - Linux Mint 19 and newer
+    - Other APT-based distributions with standard package layouts
+  - **Pacman-based distributions:**
+    - Arch Linux
+    - Manjaro
+    - EndeavourOS
+    - Other Arch-based distributions
+  - **Automatic Detection:** System automatically detects primary package manager (APT vs Pacman)
+  - **Cross-platform support:** Modular architecture allows easy addition of other package managers
 - **Measurement:** Testing on specified distributions
-- **Acceptance Criteria:** Full functionality on all supported distributions
+- **Acceptance Criteria:** Full functionality on all supported distributions with appropriate package manager detected
 
 #### NFR-008: Package Manager Compatibility
+
 - **Requirement:** The system MUST gracefully handle missing package managers
 - **Details:**
   - Detect availability of each package manager
@@ -340,6 +377,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 3.5 Usability Requirements
 
 #### NFR-009: User Experience
+
 - **Requirement:** The system MUST provide clear and intuitive user experience
 - **Details:**
   - Status messages must be clear and actionable
@@ -350,6 +388,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Acceptance Criteria:** Users can operate script effectively with minimal documentation
 
 #### NFR-010: Documentation Requirements
+
 - **Requirement:** The system MUST provide comprehensive usage documentation
 - **Details:**
   - Built-in help system with all options documented
@@ -362,22 +401,37 @@ This specification defines the functional and non-functional requirements for a 
 ## 4. System Architecture Requirements
 
 ### 4.1 Modular Design
-- **Requirement:** The system MUST be organized in logical, reusable modules
+
+- **Requirement:** The system MUST be organized in logical, reusable modules with high cohesion and loose coupling
 - **Details:**
-  - Separate functions for each package manager
-  - Common utility functions for output formatting
-  - Isolated error handling and recovery functions
-  - Configurable execution flow based on command line options
+  - **Main Orchestrator:** `system_update.sh` (386 lines) - coordinates execution flow only, NO business logic
+  - **Foundation Layer:** `lib/core_lib.sh` (130 lines) - color definitions, output formatting, user interaction utilities
+  - **Package Manager Modules:** Each package manager in separate file with single responsibility
+    - `lib/apt_manager.sh` (557 lines, v0.4.1) - APT/Debian operations only (uses modern `apt` commands)
+    - `lib/pacman_manager.sh` (131 lines) - Pacman/Arch operations only
+    - `lib/dpkg_manager.sh` (40 lines) - DPKG maintenance operations only
+    - `lib/snap_manager.sh` (51 lines) - Snap package operations only
+    - `lib/cargo_manager.sh` (84 lines) - Rust/Cargo operations only
+    - `lib/pip_manager.sh` (54 lines) - Python pip operations only
+    - `lib/npm_manager.sh` (54 lines) - Node.js npm operations only
+  - **Application Manager Module:** `lib/app_managers.sh` (453 lines) - specialized application updates
+  - **Total Lines:** 1,925 lines (main + libraries) vs. previous monolithic 2,606 lines
+  - **Separation of Concerns:** Clear boundaries between presentation, business logic, and orchestration
+  - **Independent Testing:** Each module can be sourced and tested individually
 
 ### 4.2 Extensibility
-- **Requirement:** The system MUST support addition of new package managers
+
+- **Requirement:** The system MUST support addition of new package managers through modular architecture
 - **Details:**
-  - Standardized function interfaces for package manager operations
-  - Consistent error handling patterns
-  - Uniform progress reporting mechanisms
-  - Modular command line option processing
+  - Standardized module structure: create new file in `lib/` directory
+  - Consistent function naming conventions for operations (update_*, check_*, clean_*)
+  - Uniform dependency on core_lib.sh for all output formatting
+  - Modular command line option processing in main script
+  - Easy integration: just source new module and call functions in main script
+  - No changes required to existing modules when adding new package managers
 
 ### 4.3 Unicode Emoji Integration Architecture
+
 - **Requirement:** The system MUST implement emoji enhancement through centralized utility functions
 - **Implementation Approach:**
   - **Centralized Enhancement:** Core utility functions (`print_status`, `print_success`, `print_warning`, `print_error`) enhanced with emojis at the function level
@@ -394,17 +448,24 @@ This specification defines the functional and non-functional requirements for a 
 ## 5. Integration Requirements
 
 ### 5.1 External System Dependencies
-- **Requirement:** The system MUST integrate with standard Linux package management tools
+
+- **Requirement:** The system MUST integrate with standard Linux package management tools with automatic detection
 - **Dependencies:**
-  - APT package manager (apt, apt-get, dpkg)
-  - APT update notification system (/usr/lib/update-notifier/apt-check)
-  - Snap package manager (snap command)
-  - Rust toolchain (rustup, cargo)
-  - Python package installer (pip3)
-  - Node.js package manager (npm)
-  - Standard Linux utilities (curl, wget, grep, awk, etc.)
+  - **Primary Package Managers (auto-detected):**
+    - APT package manager (apt, apt-get, dpkg) for Debian/Ubuntu systems
+    - Pacman package manager (pacman) for Arch Linux systems
+    - APT update notification system (/usr/lib/update-notifier/apt-check)
+  - **Secondary Package Managers (optional):**
+    - Snap package manager (snap command)
+    - Rust toolchain (rustup, cargo)
+    - Python package installer (pip3)
+    - Node.js package manager (npm)
+  - **Standard Linux utilities:** curl, wget, grep, awk, wc, head, etc.
+  - **Application-specific tools:** GitHub API access for version checking
+  - **Modular library system:** All modules in `lib/` directory with defined interfaces
 
 ### 5.2 Network Dependencies
+
 - **Requirement:** The system MUST handle network connectivity requirements
 - **Details:**
   - Package repository access for updates
@@ -415,6 +476,7 @@ This specification defines the functional and non-functional requirements for a 
 ## 6. Data Requirements
 
 ### 6.1 Input Data
+
 - Command line arguments and options
 - User interactive responses
 - System package manager databases
@@ -422,6 +484,7 @@ This specification defines the functional and non-functional requirements for a 
 - File system status and configuration
 
 ### 6.2 Output Data
+
 - Formatted status and progress messages
 - Package operation results and statistics
 - System state changes and disk usage
@@ -433,6 +496,7 @@ This specification defines the functional and non-functional requirements for a 
 ### 7.1 Command Line Interface
 
 #### Options:
+
 ```bash
 -h, --help          Display comprehensive help information
 -v, --version       Display script version and metadata information
@@ -446,6 +510,7 @@ This specification defines the functional and non-functional requirements for a 
 ```
 
 #### Exit Codes:
+
 - `0`: Successful completion
 - `1`: General error or user cancellation
 - `2`: Insufficient privileges
@@ -456,7 +521,8 @@ This specification defines the functional and non-functional requirements for a 
 ### 7.2 Output Format Specification
 
 #### Status Message Format:
-```
+
+```plaintext
 [INFO] Informational messages in blue
 ✅ Success messages in green (streamlined format without verbose [SUCCESS] text)
 [WARNING] Warning messages in yellow
@@ -464,6 +530,7 @@ This specification defines the functional and non-functional requirements for a 
 ```
 
 #### Progress Indicators:
+
 - Step-by-step operation descriptions
 - Package count statistics
 - Before/after disk usage comparisons
@@ -472,6 +539,7 @@ This specification defines the functional and non-functional requirements for a 
 ## 8. Quality Assurance Requirements
 
 ### 8.1 Testing Requirements
+
 - Unit testing for individual functions
 - Integration testing across package managers
 - Error condition testing and recovery verification
@@ -479,6 +547,7 @@ This specification defines the functional and non-functional requirements for a 
 - Security testing for privilege escalation and input validation
 
 ### 8.2 Validation Criteria
+
 - All package managers function correctly after script execution
 - System integrity maintained throughout operation
 - User data and configurations preserved
@@ -488,12 +557,14 @@ This specification defines the functional and non-functional requirements for a 
 ## 9. Maintenance and Support Requirements
 
 ### 9.1 Logging and Monitoring
+
 - Comprehensive operation logging to system logs
 - Error tracking and reporting mechanisms
 - Performance metrics collection
 - User action audit trail
 
 ### 9.2 Update and Maintenance Procedures
+
 - Version control integration for script updates
 - Rollback procedures for problematic updates
 - Compatibility testing for new operating system versions
@@ -501,15 +572,39 @@ This specification defines the functional and non-functional requirements for a 
 
 ## 10. Change History
 
+### Version 1.3 (November 19, 2025) - Script Version 0.4.0
+
+- **Major Architectural Refactoring** - Transformed from monolithic 2,606-line script to modular architecture
+- **Enhanced Section 4: System Architecture Requirements** - Added comprehensive modular design specifications
+  - Main orchestrator reduced to 386 lines (coordinator only, no business logic)
+  - Created 9 specialized library modules totaling 1,539 lines
+  - High cohesion and loose coupling principles applied throughout
+- **Updated FR-006: Application-Specific Updates** - Added support for multiple applications
+  - Added GitHub Copilot CLI updates via npm
+  - Added VSCode Insiders update detection
+  - Added Node.js version checking
+  - Maintained Kitty and Calibre support
+- **Enhanced Section 4.1: Modular Design** - Detailed module structure and responsibilities
+  - Foundation layer (core_lib.sh) with shared utilities
+  - Package manager modules with single responsibility
+  - Application manager module for specialized updates
+  - Clear dependency relationships and module interfaces
+- **Enhanced Section 4.2: Extensibility** - Improved extensibility through modular architecture
+- **Updated Section 5.1: External System Dependencies** - Added modular library system dependencies
+- **Enhanced NFR-007: Operating System Support** - Clarified multi-distribution support with automatic detection
+- **Updated Scope Section 1.2** - Clarified comprehensive application support
+
 ### Version 1.2 (November 11, 2025) - Script Version 0.3.0
-- **Added FR-013: Pacman Package Manager Support** - Multi-platform support for Arch Linux
-- **Enhanced FR-001: Package Manager Detection** - Automatic detection of APT vs Pacman systems
+
+- **Added Pacman Package Manager Support** - Multi-platform support for Arch Linux
+- **Enhanced Package Manager Detection** - Automatic detection of APT vs Pacman systems
 - **Updated Visual Communication** - Added 🏹 Pacman and 🤖 GitHub Copilot emojis
 - **Enhanced Cross-Platform Compatibility** - Support for Debian/Ubuntu (APT) and Arch Linux (Pacman)
 - **Added Pacman Operations**: Database updates, package upgrades, cache cleaning
 - **Updated Dependencies** - Added pacman package manager as optional dependency
 
 ### Version 1.1 (November 4, 2025) - Script Version 0.2.0
+
 - **Added FR-007: Pre-Update Verification System** - Intelligent update checking using apt-check
 - **Enhanced FR-001: APT Package Management** - Added pre-update verification capabilities
 - **Updated FR-011: Command Line Interface** - Added version display option (-v, --version)
@@ -518,6 +613,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Enhanced Application Support** - Added Kitty terminal emulator update detection
 
 ### Version 1.0 (October 28, 2025) - Script Version 0.1.0
+
 - Initial comprehensive technical specification
 - Complete functional and non-functional requirements definition
 - Architectural specifications and integration requirements
@@ -525,4 +621,4 @@ This specification defines the functional and non-functional requirements for a 
 
 ---
 
-*This technical specification serves as the authoritative definition of requirements for the src/system_update.sh script. All implementation must conform to these specifications to ensure reliable, secure, and maintainable operation.*
+*This technical specification serves as the authoritative definition of requirements for the src/system_update/system_update.sh modular script system. All implementation must conform to these specifications to ensure reliable, secure, and maintainable operation.*
