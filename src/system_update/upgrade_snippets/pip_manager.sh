@@ -52,3 +52,5 @@ update_pip_packages() {
     
     ask_continue
 }
+
+update_pip_packages

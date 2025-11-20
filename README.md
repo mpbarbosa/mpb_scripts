@@ -7,27 +7,32 @@ Linux shell scripts for system automation and maintenance.
 ```
 mpb_scripts/
 ├── src/                      # Shell scripts
-│   ├── system_update.sh      # Comprehensive package management (monolithic version)
 │   ├── system_summary.sh     # System information summary and diagnostics
-│   └── system_update/        # Modular system_update (refactored version)
+│   └── system_update/        # Modular system_update
 │       ├── system_update.sh  # Main orchestrator script
-│       ├── lib/              # Package manager modules
+│       ├── lib/              # Core package manager modules
 │       │   ├── core_lib.sh
 │       │   ├── apt_manager.sh
 │       │   ├── pacman_manager.sh
 │       │   ├── dpkg_manager.sh
+│       │   └── app_managers.sh
+│       ├── upgrade_snippets/ # Optional upgrade modules
 │       │   ├── snap_manager.sh
 │       │   ├── cargo_manager.sh
 │       │   ├── pip_manager.sh
 │       │   ├── npm_manager.sh
-│       │   └── app_managers.sh
+│       │   ├── check_calibre_update.sh
+│       │   ├── check_kitty_update.sh
+│       │   ├── check_vscode_insiders_update.sh
+│       │   └── update_github_copilot_cli.sh
 │       ├── README.md         # Modular architecture documentation
 │       ├── ARCHITECTURE.md   # Visual architecture diagrams
-│       └── REFACTORING_SUMMARY.md
+│       ├── REFACTORING_SUMMARY.md
+│       └── PROJECT_SUMMARY.txt
 ├── docs/                     # Technical documentation
+│   ├── system_update_design_document.md
 │   └── system_update_technical_specification.md
 ├── prompts/                  # Workflow and prompt files
-│   └── tests_documentation_update_enhanced.txt
 ├── LICENSE                   # MIT License
 └── README.md                 # This file
 ```
@@ -38,28 +43,20 @@ mpb_scripts/
 
 Comprehensive package management and system update script that automates package updates across multiple package managers.
 
-**Available Versions:**
-- **Monolithic** (`src/system_update.sh`): Single-file version (v0.3.0) - stable, production-ready
-- **Modular** (`src/system_update/`): Refactored architecture (v0.4.0) - improved maintainability
-
 **Features:**
-- Multi-package-manager support (apt, pacman, snap, cargo, pip, npm)
+- Multi-package-manager support (apt, pacman)
+- Optional package manager support via upgrade snippets (snap, cargo, pip, npm)
 - Cross-platform support (Debian/Ubuntu with APT, Arch Linux with Pacman)
 - Interactive and quiet modes
 - Intelligent handling of kept back packages
 - Comprehensive package listing and statistics
-- GitHub Copilot CLI automatic updates
-- Calibre update checking
+- Optional application update checks (GitHub Copilot CLI, Calibre, Kitty, VS Code Insiders)
 - Detailed error analysis and recovery suggestions
 - Progress tracking and user confirmation options
-- Modular architecture with high cohesion and loose coupling (modular version)
+- Modular architecture with high cohesion and loose coupling
 
 **Usage:**
 ```bash
-# Monolithic version
-./src/system_update.sh [OPTIONS]
-
-# Modular version
 ./src/system_update/system_update.sh [OPTIONS]
 
 Options:
@@ -75,16 +72,16 @@ Options:
 
 **Dependencies:**
 - sudo privileges for system package operations
-- Various package managers (detected automatically): apt or pacman (base system), snap, cargo, pip, npm
+- Core package managers (detected automatically): apt or pacman
+- Optional package managers (via upgrade_snippets): snap, cargo, pip, npm
 - Network connectivity for package updates
-- Node.js and npm (for GitHub Copilot CLI updates)
 
-**Modular Architecture Benefits:**
+**Modular Architecture:**
+- **Core modules** (`lib/`): Essential package managers and utilities
+- **Upgrade snippets** (`upgrade_snippets/`): Optional, dynamically loaded upgrade modules
 - High cohesion: Each module has a single, well-defined responsibility
 - Loose coupling: Modules are independent and testable
-- Easy to maintain: 42-560 lines per module vs. 2,606 lines in monolithic version
-- Reusable: Individual modules can be sourced in other scripts
-- Extensible: Add new package managers without modifying existing code
+- Extensible: Add new functionality by dropping scripts into upgrade_snippets/
 
 See [src/system_update/README.md](src/system_update/README.md) for detailed modular architecture documentation.
 

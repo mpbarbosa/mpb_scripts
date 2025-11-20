@@ -27,6 +27,7 @@
 #   -c, --cleanup     Cleanup only mode
 #   -l, --list        List all installed packages
 #   --list-detailed   List all packages with detailed information
+#   --verbose         Enable verbose output mode
 #   -v, --version     Show version information
 #   -h, --help        Show help message
 #
@@ -57,14 +58,10 @@ LIB_DIR="$SCRIPT_DIR/lib"
 
 # Source all library modules
 source "$LIB_DIR/core_lib.sh"
+source "$LIB_DIR/app_managers.sh"
 source "$LIB_DIR/apt_manager.sh"
 source "$LIB_DIR/pacman_manager.sh"
 source "$LIB_DIR/dpkg_manager.sh"
-source "$LIB_DIR/snap_manager.sh"
-source "$LIB_DIR/cargo_manager.sh"
-source "$LIB_DIR/pip_manager.sh"
-source "$LIB_DIR/npm_manager.sh"
-source "$LIB_DIR/app_managers.sh"
 
 #=============================================================================
 # GLOBAL FLAGS AND CONFIGURATION
@@ -75,6 +72,7 @@ FULL_MODE=false
 CLEANUP_ONLY=false
 LIST_PACKAGES=false
 LIST_DETAILED=false
+VERBOSE_MODE=false
 
 #=============================================================================
 # UTILITY FUNCTIONS
@@ -114,6 +112,7 @@ Options:
     -c, --cleanup       Cleanup only mode (just run cleanup operations)
     -l, --list          List all installed packages
     --list-detailed     List all packages with detailed information
+    --verbose           Enable verbose output mode
     -v, --version       Show version information
     -h, --help          Show this help message
 
@@ -178,7 +177,8 @@ list_all_packages() {
     
     if command -v pip3 &> /dev/null; then
         print_operation_header "Python pip Packages:"
-        local pip_count=$(pip3 list 2>/dev/null | wc -l)
+        local pip_count
+        pip_count=$(pip3 list 2>/dev/null | wc -l)
         print_status "Total pip packages: $pip_count"
         
         if [ "$detailed" = "--detailed" ]; then
@@ -221,6 +221,10 @@ while [[ $# -gt 0 ]]; do
         --list-detailed)
             LIST_PACKAGES=true
             LIST_DETAILED=true
+            shift
+            ;;
+        --verbose)
+            VERBOSE_MODE=true
             shift
             ;;
         -v|--version)
@@ -309,41 +313,9 @@ else
     print_warning "No supported package manager detected (apt or pacman)"
 fi
 
-# Snap Package Manager Operations
-print_section_header "SNAP PACKAGE MANAGER"
-update_snap_packages
-
-# Rust/Cargo Package Manager Operations
-print_section_header "RUST/CARGO PACKAGE MANAGER"
-update_rust_packages
-
-# Python pip Package Manager Operations
-print_section_header "PYTHON PIP PACKAGE MANAGER"
-update_pip_packages
-
-# Node.js npm Package Manager Operations
-print_section_header "NODE.JS NPM PACKAGE MANAGER"
-update_npm_packages
-
-# Node.js Updates
-print_section_header "NODE.JS"
-check_nodejs_update
-
-# Kitty Terminal Emulator Updates
-print_section_header "KITTY TERMINAL EMULATOR"
-check_kitty_update
-
-# GitHub Copilot CLI Updates
-print_section_header "GITHUB COPILOT CLI"
-update_github_copilot_cli
-
-# VSCode Insiders Updates
-print_section_header "VSCODE INSIDERS"
-check_vscode_insiders_update
-
-# Calibre Application Updates
-print_section_header "CALIBRE APPLICATION"
-check_calibre_update
+# Load upgrade snippets
+print_section_header "LOAD UPGRADE SNIPPETS"
+source_upgrade_snippets
 
 # System Upgrade Operations (only in full mode)
 if [ "$FULL_MODE" = true ]; then

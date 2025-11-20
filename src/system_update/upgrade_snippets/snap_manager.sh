@@ -49,3 +49,5 @@ update_snap_packages() {
     
     ask_continue
 }
+
+update_snap_packages
