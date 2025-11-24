@@ -4,26 +4,21 @@ Refactored version of the system_update.sh script following cohesion and couplin
 
 ## Architecture
 
-The modular system_update script is organized into focused, single-responsibility modules:
+The monolithic 2600-line script has been split into focused, single-responsibility modules:
 
 ```
 system_update/
 ├── system_update.sh          # Main orchestrator (coordinator only)
-├── lib/                      # Core library modules
+├── lib/
 │   ├── core_lib.sh           # Core utilities & output formatting
 │   ├── apt_manager.sh        # APT package manager operations
 │   ├── pacman_manager.sh     # Pacman package manager operations
 │   ├── dpkg_manager.sh       # DPKG maintenance operations
-│   └── app_managers.sh       # Application updates & snippet loader
-├── upgrade_snippets/         # Optional upgrade modules (dynamically loaded)
 │   ├── snap_manager.sh       # Snap package operations
 │   ├── cargo_manager.sh      # Rust/Cargo package operations
 │   ├── pip_manager.sh        # Python pip package operations
 │   ├── npm_manager.sh        # Node.js npm package operations
-│   ├── check_calibre_update.sh         # Calibre update checker
-│   ├── check_kitty_update.sh           # Kitty terminal update checker
-│   ├── check_vscode_insiders_update.sh # VS Code Insiders update checker
-│   └── update_github_copilot_cli.sh    # GitHub Copilot CLI updater
+│   └── app_managers.sh       # Application updates (Kitty, Calibre, Copilot)
 └── README.md                 # This file
 ```
 
@@ -47,11 +42,10 @@ system_update/
 - Clear separation of concerns
 - Better code organization
 
-### Extensibility Through Upgrade Snippets
-- **Dynamic loading**: All scripts in `upgrade_snippets/` are automatically sourced
-- **No code modification required**: Add new package managers by dropping files into the directory
-- **Backward compatible**: Core functionality remains in `lib/` for stability
-- **Optional dependencies**: Upgrade snippets only execute if their tools are available
+### Reusability
+- Individual modules can be used in other scripts
+- Functions can be called independently
+- Easy to extract specific functionality
 
 ## Usage
 
@@ -107,15 +101,6 @@ The main script maintains **100% backward compatibility** with the original:
 ### dpkg_manager.sh
 - `maintain_dpkg_packages()` - DPKG maintenance and status
 
-### app_managers.sh
-- `source_upgrade_snippets()` - Dynamically load all upgrade snippet modules
-- `install_nodejs()` - Install Node.js via NVM
-- `check_nodejs_update()` - Check for Node.js updates
-
-## Upgrade Snippets
-
-Optional modules in `upgrade_snippets/` that are automatically loaded if present:
-
 ### snap_manager.sh
 - `update_snap_packages()` - Update Snap packages
 
@@ -131,16 +116,9 @@ Optional modules in `upgrade_snippets/` that are automatically loaded if present
 ### npm_manager.sh
 - `update_npm_packages()` - Update Node.js global packages
 
-### check_kitty_update.sh
+### app_managers.sh
 - `check_kitty_update()` - Update Kitty terminal
-
-### check_calibre_update.sh
-- `check_calibre_update()` - Update Calibre e-book manager
-
-### check_vscode_insiders_update.sh
-- `check_vscode_insiders_update()` - Update VS Code Insiders
-
-### update_github_copilot_cli.sh
+- `check_calibre_update()` - Update Calibre
 - `update_github_copilot_cli()` - Update GitHub Copilot CLI
 
 ## Design Principles Applied
@@ -149,7 +127,7 @@ Optional modules in `upgrade_snippets/` that are automatically loaded if present
 Each module handles one package manager or category of functionality.
 
 ### Open/Closed Principle
-Easy to extend with new package managers by adding files to `upgrade_snippets/` without modifying existing code.
+Easy to extend with new package managers without modifying existing code.
 
 ### Dependency Inversion
 Main script depends on abstractions (sourced modules), not concrete implementations.
@@ -170,44 +148,18 @@ source lib/core_lib.sh
 source lib/apt_manager.sh
 QUIET_MODE=true
 check_updates_available
-
-# Test upgrade snippets
-source lib/core_lib.sh
-source lib/app_managers.sh
-source_upgrade_snippets  # This loads all upgrade snippets
 ```
 
-## Adding New Package Managers
+## Migration from Original Script
 
-To add a new package manager or upgrade feature:
-
-1. Create a new script in `upgrade_snippets/` directory
-2. Define your update functions using the naming convention from existing snippets
-3. The script will be automatically loaded by `source_upgrade_snippets()` on next run
-4. No modification to core scripts required
-
-Example:
-```bash
-# upgrade_snippets/my_new_manager.sh
-#!/bin/bash
-
-update_my_package_manager() {
-    print_operation_header "Checking My Package Manager updates..."
-    # Your update logic here
-}
-```
-
-## Migration Notes
-
-The original monolithic `/src/system_update.sh` has been removed. This modular version:
+The original `/src/system_update.sh` remains unchanged. This modular version is a **complete refactoring** that:
 
 1. Maintains all original functionality
 2. Preserves all command-line options
 3. Keeps the same user interface
 4. Uses the same output formatting
-5. Adds extensibility through the `upgrade_snippets/` directory
 
-To use the modular version:
+To use the modular version, simply run:
 
 ```bash
 cd src/system_update
@@ -216,8 +168,8 @@ cd src/system_update
 
 ## Version
 
-- **Version**: 0.5.0 (Modular with upgrade snippets)
-- **Previous Version**: 0.4.1 (Modular)
+- **Version**: 0.4.1 (Modular)
+- **Original Version**: 0.3.0 (Monolithic)
 - **Author**: mpb
 - **Repository**: https://github.com/mpbarbosa/mpb_scripts
 - **License**: MIT

@@ -1,7 +1,7 @@
 # Design Document: src/system_update/system_update.sh
 
-**Design Document Version:** 1.3  
-**Date:** November 20, 2025  
+**Design Document Version:** 1.2  
+**Date:** November 19, 2025  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts  
 **Related Documents:** [Technical Specification](system_update_technical_specification.md)
@@ -26,38 +26,32 @@ This document covers the system architecture, module design, data flow, error ha
 
 ## 2. System Architecture
 
-### 2.1 Modular Library Architecture with Upgrade Snippets
+### 2.1 Modular Library Architecture
 
-The system update script employs a **modular library architecture** introduced in version 0.4.0 and enhanced in version 0.5.0 with **upgrade snippets**, separating concerns into core library modules and optional dynamically-loaded upgrade modules:
+The system update script employs a **modular library architecture** introduced in version 0.4.0, separating concerns into dedicated library modules housed in `src/system_update/lib/`:
 
 **Library Structure:**
 ```plaintext
 src/system_update/
 ├── system_update.sh           # Main orchestration script
-├── lib/                       # Core library modules
-│   ├── core_lib.sh           # Core utilities and formatting (v0.4.0)
-│   ├── apt_manager.sh        # APT/DPKG operations (v0.4.1)
-│   ├── pacman_manager.sh     # Pacman operations (v0.4.0)
-│   ├── dpkg_manager.sh       # DPKG maintenance (v0.4.0)
-│   └── app_managers.sh       # Application managers & snippet loader (v0.5.0)
-└── upgrade_snippets/         # Optional upgrade modules (v0.5.0)
-    ├── snap_manager.sh       # Snap operations
-    ├── cargo_manager.sh      # Rust/Cargo operations
-    ├── pip_manager.sh        # Python pip operations
-    ├── npm_manager.sh        # Node.js npm operations
-    ├── check_calibre_update.sh         # Calibre update checker
-    ├── check_kitty_update.sh           # Kitty terminal updater
-    ├── check_vscode_insiders_update.sh # VS Code Insiders updater
-    └── update_github_copilot_cli.sh    # GitHub Copilot CLI updater
+└── lib/                       # Modular library components
+    ├── core_lib.sh           # Core utilities and formatting (v0.4.0)
+    ├── apt_manager.sh        # APT/DPKG operations (v0.4.1)
+    ├── pacman_manager.sh     # Pacman operations (v0.4.0)
+    ├── snap_manager.sh       # Snap operations (v0.4.0)
+    ├── flatpak_manager.sh    # Flatpak operations (v0.4.0)
+    ├── rust_manager.sh       # Rust/Cargo operations (v0.4.0)
+    ├── pip_manager.sh        # Python pip operations (v0.4.1)
+    ├── npm_manager.sh        # Node.js npm operations (v0.4.0)
+    ├── dpkg_manager.sh       # DPKG maintenance (v0.4.0)
+    └── app_managers.sh       # Application-specific managers (v0.5.0)
 ```
 
 **Architectural Benefits:**
-- **Core Stability**: Essential functionality in `lib/` for reliability
-- **Dynamic Extensibility**: Optional features in `upgrade_snippets/` loaded at runtime
 - **Isolation**: Each package manager has independent implementation
-- **Maintainability**: Modules can be updated independently
+- **Maintainability**: Modules can be updated independently with semantic versioning
 - **Testability**: Individual modules can be tested in isolation
-- **Zero Modification Extension**: Add features by dropping files into `upgrade_snippets/`
+- **Extensibility**: New package managers can be added without modifying existing code
 - **Reusability**: Library functions can be sourced by other scripts
 
 ### 2.2 High-Level Architecture
@@ -71,33 +65,19 @@ src/system_update/
 │                     Orchestration Layer                        │
 │              (Main Execution Flow Control)                     │
 ├─────────────────────────────────────────────────────────────────┤
-│           Core Library Layer (src/system_update/lib/)          │
+│                   Library Module Layer (src/system_update/lib/)│
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                    core_lib.sh (v0.4.0)                  │   │
 │  │  Output Formatting • Version Comparison • User Prompts   │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │            Core Package Manager Modules                   │  │
-│  │  ┌────────┬─────────┬───────┬──────────────────────────┐ │  │
-│  │  │  APT   │ Pacman  │ DPKG  │   app_managers.sh        │ │  │
-│  │  │ v0.4.1 │ v0.4.0  │v0.4.0 │   (snippet loader)       │ │  │
-│  │  └────────┴─────────┴───────┴──────────────────────────┘ │  │
-│  └──────────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│      Upgrade Snippets Layer (src/system_update/upgrade_snippets)│
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │           Optional Package Manager Modules                │  │
-│  │  ┌───────┬───────┬───────┬──────┐                        │  │
-│  │  │ Snap  │ Cargo │  pip  │ npm  │                        │  │
-│  │  └───────┴───────┴───────┴──────┘                        │  │
+│  │            Package Manager Modules                        │  │
+│  │  ┌────────┬─────────┬───────┬───────┬───────┬──────────┐ │  │
+│  │  │  APT   │ Pacman  │ Snap  │ Cargo │  pip  │   npm    │ │  │
+│  │  │ v0.4.0 │ v0.4.0  │v0.4.0 │v0.4.0 │v0.4.1 │  v0.4.0  │ │  │
+│  │  └────────┴─────────┴───────┴───────┴───────┴──────────┘ │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │         Optional Application Update Checkers              │  │
-│  │  ┌─────────┬────────┬──────────┬────────────────────┐    │  │
-│  │  │ Calibre │ Kitty  │ VS Code  │ GitHub Copilot CLI │    │  │
-│  │  └─────────┴────────┴──────────┴────────────────────┘    │  │
-│  └──────────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
 │  │         Application-Specific Managers (v0.5.0)           │  │
 │  │  Kitty • Calibre • Copilot CLI • VS Code • Node.js      │  │
 │  └──────────────────────────────────────────────────────────┘  │

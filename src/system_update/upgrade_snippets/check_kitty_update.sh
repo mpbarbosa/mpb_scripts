@@ -1,62 +1,60 @@
 #!/bin/bash
-# check_kitty_update.sh - Kitty update snippet
-# Extracted from src/system_update/lib/app_managers.sh
+#
+# check_kitty_update.sh - Kitty terminal emulator update manager
+#
+# Handles version checking and updates for Kitty terminal.
+# Reference: https://github.com/kovidgoyal/kitty
+#
+
+# Load upgrade utilities library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+source "$LIB_DIR/upgrade_utils.sh"
 
 # Update Kitty terminal emulator
 check_kitty_update() {
     local kitty_installer_url="https://sw.kovidgoyal.net/kitty/installer.sh"
-    # Check if Kitty is installed
-    if ! command -v kitty &> /dev/null; then
-        print_warning "Kitty terminal not installed - skipping update check"
-        return 0
-    fi
     
     print_operation_header "Checking Kitty terminal updates..."
     
+    # Check if Kitty is installed
+    if ! check_app_installed "kitty" "Kitty terminal"; then
+        ask_continue
+        return 0
+    fi
+    
+    # Get current version
     local current_version
-    local latest_version
     current_version=$(kitty --version 2>/dev/null | awk '{print $2}')
-    latest_version=$(curl -s https://api.github.com/repos/kovidgoyal/kitty/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^\"]+)".*/\1/')
     
-    print_status "Current version: $current_version"
-    print_status "Latest version: $latest_version"
-    
-    if [ -z "$latest_version" ]; then
-        print_error "Failed to fetch latest version"
+    if [ -z "$current_version" ]; then
+        print_error "Failed to get current Kitty version"
         ask_continue
         return 1
     fi
     
-    compare_versions "$current_version" "$latest_version"
-    local cmp_result=$?
+    # Get latest version from GitHub releases
+    local latest_version
+    latest_version=$(get_github_latest_version "kovidgoyal" "kitty")
     
-    if [ $cmp_result -eq 2 ]; then
-        print_warning "Kitty update available: $current_version → $latest_version"
-        
-        if [ "$QUIET_MODE" = false ]; then
-            echo -n -e "${MAGENTA}❓ [PROMPT]${NC} Update Kitty terminal? (y/N): "
-            read -r response
-            case "$response" in
-                [Yy]|[Yy][Ee][Ss])
-                    print_status "Updating Kitty..."
-                    print_status "Downloading installer from: $kitty_installer_url"
-                    if $VERBOSE_MODE; then
-                        curl -L "$kitty_installer_url" | sh /dev/stdin
-                    else
-                        curl -L "$kitty_installer_url" | sh /dev/stdin 2>&1 | tail -20
-                    fi
-                    print_success "Kitty update completed"
-                    ;;
-                *)
-                    print_status "Skipping Kitty update"
-                    ;;
-            esac
-        fi
+    # Compare and report versions
+    compare_and_report_versions "$current_version" "$latest_version" "Kitty terminal"
+    local version_status=$?
+    
+    # Handle update workflow
+    local update_cmd="print_status 'Downloading installer from: $kitty_installer_url' && "
+    if ${VERBOSE_MODE:-false}; then
+        update_cmd+="curl -L '$kitty_installer_url' | sh /dev/stdin && "
     else
-        print_success "Kitty is up to date"
+        update_cmd+="curl -L '$kitty_installer_url' | sh /dev/stdin 2>&1 | tail -20 && "
     fi
+    update_cmd+="print_success 'Kitty update completed' && "
+    update_cmd+="show_installation_info 'kitty' 'Kitty terminal'"
     
-    ask_continue
+    if ! handle_update_prompt "Kitty terminal" "$version_status" "$update_cmd"; then
+        ask_continue
+        return 1
+    fi
 }
 
 check_kitty_update

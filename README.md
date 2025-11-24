@@ -8,6 +8,7 @@ Linux shell scripts for system automation and maintenance.
 mpb_scripts/
 ├── src/                      # Shell scripts
 │   ├── system_summary.sh     # System information summary and diagnostics
+│   ├── system_update.sh      # Wrapper script (launches system_update/system_update.sh)
 │   └── system_update/        # Modular system_update
 │       ├── system_update.sh  # Main orchestrator script
 │       ├── lib/              # Core package manager modules
@@ -15,7 +16,8 @@ mpb_scripts/
 │       │   ├── apt_manager.sh
 │       │   ├── pacman_manager.sh
 │       │   ├── dpkg_manager.sh
-│       │   └── app_managers.sh
+│       │   ├── app_managers.sh
+│       │   └── upgrade_utils.sh
 │       ├── upgrade_snippets/ # Optional upgrade modules
 │       │   ├── snap_manager.sh
 │       │   ├── cargo_manager.sh
@@ -24,7 +26,8 @@ mpb_scripts/
 │       │   ├── check_calibre_update.sh
 │       │   ├── check_kitty_update.sh
 │       │   ├── check_vscode_insiders_update.sh
-│       │   └── update_github_copilot_cli.sh
+│       │   ├── update_github_copilot_cli.sh
+│       │   └── update_tmux.sh
 │       ├── README.md         # Modular architecture documentation
 │       ├── ARCHITECTURE.md   # Visual architecture diagrams
 │       ├── REFACTORING_SUMMARY.md

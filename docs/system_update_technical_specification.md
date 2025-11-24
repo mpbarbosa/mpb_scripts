@@ -1,20 +1,20 @@
 # Technical Specification: src/system_update/system_update.sh
 
-**Document Version:** 1.4  
-**Date:** November 20, 2025  
+**Document Version:** 1.3  
+**Date:** November 19, 2025  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts  
-**Script Version:** 0.5.0 (Modular with Upgrade Snippets)  
+**Script Version:** 0.4.0 (Alpha)  
 
 ## 1. Overview
 
 ### 1.1 Purpose
 
-The `src/system_update/system_update.sh` script provides comprehensive package management and system maintenance capabilities across multiple package managers and software distribution methods. The system shall automate routine maintenance tasks while providing intelligent error handling, user interaction options, and detailed progress reporting through a modular architecture with dynamically-loaded upgrade snippets.
+The `src/system_update/system_update.sh` script provides comprehensive package management and system maintenance capabilities across multiple package managers and software distribution methods. The system shall automate routine maintenance tasks while providing intelligent error handling, user interaction options, and detailed progress reporting through a modular architecture.
 
 ### 1.2 Scope
 
-This specification defines the functional and non-functional requirements for a modular multi-package-manager update system with core support for APT (Debian/Ubuntu) and Pacman (Arch Linux), plus optional support through upgrade snippets for Snap, Rust/Cargo, Python pip, Node.js npm, and specialized software including Kitty terminal, Calibre e-book manager, GitHub Copilot CLI, and VS Code Insiders.
+This specification defines the functional and non-functional requirements for a modular multi-package-manager update system supporting APT (Debian/Ubuntu), Pacman (Arch Linux), Snap, Rust/Cargo, Python pip, Node.js npm, and specialized software including Kitty terminal, Calibre e-book manager, GitHub Copilot CLI, VSCode Insiders, and Node.js version checking.
 
 ## 2. Functional Requirements
 
@@ -37,72 +37,67 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Update availability status, success/failure status, package count statistics, security update alerts, error descriptions
 - **Acceptance Criteria:** APT operations complete without leaving system in inconsistent state, unnecessary operations are skipped when no updates available
 
-#### FR-002: Snap Package Management (Optional via Upgrade Snippets)
+#### FR-002: Snap Package Management
 
-- **Requirement:** The system SHOULD manage Snap packages when Snap is available and the upgrade snippet is present
+- **Requirement:** The system MUST manage Snap packages when Snap is available
 - **Details:**
   - Detect Snap package manager availability
   - Refresh all installed Snap packages
   - Provide progress feedback for long-running operations
   - Handle Snap service restarts gracefully
-  - Loaded dynamically from `upgrade_snippets/snap_manager.sh`
 - **Input:** None (auto-detection)
 - **Output:** Updated package count, operation status
-- **Acceptance Criteria:** All available Snap updates applied successfully when snippet is loaded
+- **Acceptance Criteria:** All available Snap updates applied successfully
 
-#### FR-003: Rust/Cargo Package Management (Optional via Upgrade Snippets)
+#### FR-003: Rust/Cargo Package Management
 
-- **Requirement:** The system SHOULD update Rust toolchain and Cargo packages when available and the upgrade snippet is present
+- **Requirement:** The system MUST update Rust toolchain and Cargo packages through modular components
 - **Details:**
   - **Rustup Self-Update**: Update rustup toolchain manager to latest version
   - **Toolchain Updates**: Update Rust compiler toolchains (stable, beta, nightly)
   - **Cargo Utility Management**: Interactively install cargo-update utility when needed
   - **Package Updates**: Update user-installed Cargo packages with intelligent fallbacks
   - **Modular Architecture**: Each component operates independently for better error isolation
-  - Loaded dynamically from `upgrade_snippets/cargo_manager.sh`
 - **Input:** None (uses user's Cargo registry), optional user confirmation for utility installation
 - **Output:** Rust version info, package update count, component-specific status reports
 - **Acceptance Criteria:** Rust environment remains functional after updates, modular failures don't prevent other operations
 
-#### FR-004: Python Package Management (Optional via Upgrade Snippets)
+#### FR-004: Python Package Management
 
-- **Requirement:** The system SHOULD manage Python packages via pip when available and the upgrade snippet is present
+- **Requirement:** The system MUST manage Python packages via pip
 - **Details:**
   - Update pip itself to latest version
   - Upgrade all user-installed packages
   - Handle virtual environments appropriately
   - Provide security vulnerability reporting
-  - Loaded dynamically from `upgrade_snippets/pip_manager.sh`
 - **Input:** None (uses pip configuration)
 - **Output:** Package count, security alert summary
 - **Acceptance Criteria:** Python packages updated without breaking dependencies
 
-#### FR-005: Node.js Package Management (Optional via Upgrade Snippets)
+#### FR-005: Node.js Package Management
 
-- **Requirement:** The system SHOULD manage global npm packages when available and the upgrade snippet is present
+- **Requirement:** The system MUST manage global npm packages
 - **Details:**
   - Update npm package manager itself
   - Upgrade all globally installed packages
   - Check for security vulnerabilities
   - Provide funding information for maintainers
-  - Loaded dynamically from `upgrade_snippets/npm_manager.sh`
 - **Input:** None (uses global npm registry)
 - **Output:** Package statistics, security report
 - **Acceptance Criteria:** Node.js environment remains stable after updates
 
-#### FR-006: Application-Specific Updates (Optional via Upgrade Snippets)
+#### FR-006: Application-Specific Updates
 
-- **Requirement:** The system SHOULD support specialized application updates through upgrade snippets when present
+- **Requirement:** The system MUST support specialized application updates through modular app_managers.sh
 - **Details:**
-  - **Kitty Terminal Emulator:** Detect installation and check for updates via GitHub releases (loaded from `upgrade_snippets/check_kitty_update.sh`)
-  - **Calibre E-book Manager:** Detect installation, compare versions, and offer updates (loaded from `upgrade_snippets/check_calibre_update.sh`)
-  - **GitHub Copilot CLI:** Update using npm global package manager (loaded from `upgrade_snippets/update_github_copilot_cli.sh`)
-  - **VS Code Insiders:** Detect installation and check for updates (loaded from `upgrade_snippets/check_vscode_insiders_update.sh`)
-  - **Node.js:** Check for Node.js version updates and provide installation guidance (from core `app_managers.sh`)
+  - **Kitty Terminal Emulator:** Detect installation and check for updates via GitHub releases
+  - **Calibre E-book Manager:** Detect installation, compare versions, and offer updates
+  - **GitHub Copilot CLI:** Update using npm global package manager
+  - **VSCode Insiders:** Detect installation and check for updates
+  - **Node.js:** Check for Node.js version updates and provide installation guidance
   - Compare installed version with latest releases (GitHub API for applicable apps)
   - Provide user choice for update installation
   - Support multiple installation methods (package manager, direct download, npm)
-  - All application-specific upgrades are optional and loaded dynamically
 - **Input:** User confirmation for updates (when applicable)
 - **Output:** Version comparison results, update success status, installation instructions
 - **Acceptance Criteria:** Application updates preserve user configurations and function correctly
@@ -122,23 +117,9 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Update availability status, update counts (total and security), operation control decisions
 - **Acceptance Criteria:** System efficiently skips upgrade operations when no updates available, provides accurate update information when updates exist
 
-#### FR-008: Dynamic Upgrade Snippets System
-
-- **Requirement:** The system MUST support dynamic loading of optional upgrade modules without code modification
-- **Details:**
-  - **Snippet Directory**: Monitor `upgrade_snippets/` directory for additional functionality
-  - **Dynamic Loading**: Automatically source all `.sh` files from the snippets directory at runtime
-  - **Zero Configuration**: No modification to core scripts required to add new features
-  - **Graceful Degradation**: Core functionality remains intact if snippets directory is absent
-  - **Independence**: Each snippet operates independently without dependencies on other snippets
-  - **Standard Interface**: Snippets use core library functions for consistent UI/UX
-- **Input:** Shell scripts placed in `upgrade_snippets/` directory
-- **Output:** Extended functionality loaded at runtime
-- **Acceptance Criteria:** New package managers or update checkers can be added by simply placing scripts in the snippets directory
-
 ### 2.2 System Maintenance Operations
 
-#### FR-009: Package Database Maintenance
+#### FR-008: Package Database Maintenance
 
 - **Requirement:** The system MUST maintain package database integrity
 - **Details:**
@@ -150,7 +131,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Database status, repair actions taken
 - **Acceptance Criteria:** Package database returns to consistent state
 
-#### FR-010: System Cleanup Operations
+#### FR-009: System Cleanup Operations
 
 - **Requirement:** The system MUST perform comprehensive cleanup
 - **Details:**
@@ -162,7 +143,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Disk space reclaimed, cleanup statistics
 - **Acceptance Criteria:** System freed of unnecessary files without removing needed packages
 
-#### FR-011: Disk Space Management
+#### FR-010: Disk Space Management
 
 - **Requirement:** The system MUST monitor and report disk usage
 - **Details:**
@@ -176,7 +157,7 @@ This specification defines the functional and non-functional requirements for a 
 
 ### 2.3 User Interface Requirements
 
-#### FR-012: Command Line Interface
+#### FR-011: Command Line Interface
 
 - **Requirement:** The system MUST provide comprehensive CLI options
 - **Details:**
@@ -193,7 +174,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Appropriate script behavior based on options
 - **Acceptance Criteria:** All documented options function as specified
 
-#### FR-013: Interactive User Confirmation
+#### FR-012: Interactive User Confirmation
 
 - **Requirement:** The system MUST provide user interaction capabilities
 - **Details:**
@@ -205,7 +186,7 @@ This specification defines the functional and non-functional requirements for a 
 - **Output:** Execution control based on user choices
 - **Acceptance Criteria:** User can control script execution flow
 
-#### FR-014: Progress Reporting
+#### FR-013: Progress Reporting
 
 - **Requirement:** The system MUST provide comprehensive progress feedback
 - **Details:**
