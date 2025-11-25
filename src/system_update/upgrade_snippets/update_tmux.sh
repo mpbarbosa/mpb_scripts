@@ -18,34 +18,53 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 source "$LIB_DIR/upgrade_utils.sh"
 
+# Load configuration
+CONFIG_FILE="$SCRIPT_DIR/tmux.yaml"
+
 build_tmux_from_source() {
     local version=$1
     local build_dir
     
-    print_status "Building tmux $version from source..."
+    local building_msg
+    building_msg=$(get_config "messages.build.building")
+    building_msg="${building_msg/\{version\}/$version}"
+    print_status "$building_msg"
     
     # Check for required build dependencies
     if ! check_build_dependencies git make pkg-config autoconf automake; then
-        print_status "Install with: sudo apt install git build-essential autoconf automake pkg-config libevent-dev libncurses-dev bison"
+        local install_deps
+        install_deps=$(get_config "messages.build.install_deps")
+        print_status "$install_deps"
         return 1
     fi
     
     # Check for compiler
     if ! command -v gcc &> /dev/null && ! command -v clang &> /dev/null; then
-        print_error "Missing build dependencies: gcc or clang"
-        print_status "Install with: sudo apt install gcc"
+        local missing_compiler
+        missing_compiler=$(get_config "messages.build.missing_compiler")
+        print_error "$missing_compiler"
+        local install_compiler
+        install_compiler=$(get_config "messages.build.install_compiler")
+        print_status "$install_compiler"
         return 1
     fi
     
     # Create build directory
     build_dir=$(create_build_directory "tmux")
-    local original_dir=$(pwd)
+    local original_dir
+    original_dir=$(pwd)
     cd "$build_dir" || return 1
     
     # Clone repository
-    print_status "Cloning tmux repository..."
-    if ! git clone https://github.com/tmux/tmux.git; then
-        print_error "Failed to clone tmux repository"
+    local cloning_msg
+    cloning_msg=$(get_config "messages.build.cloning")
+    print_status "$cloning_msg"
+    local clone_url
+    clone_url=$(get_config "messages.build.clone_url")
+    if ! git clone "$clone_url"; then
+        local clone_failed
+        clone_failed=$(get_config "messages.build.clone_failed")
+        print_error "$clone_failed"
         cleanup_build_directory "$build_dir" "$original_dir"
         return 1
     fi
@@ -54,37 +73,59 @@ build_tmux_from_source() {
     
     # Checkout specific version if provided
     if [ -n "$version" ]; then
-        print_status "Checking out version $version..."
+        local checkout_msg
+        checkout_msg=$(get_config "messages.build.checkout_version")
+        checkout_msg="${checkout_msg/\{version\}/$version}"
+        print_status "$checkout_msg"
         if ! git checkout "$version" 2>/dev/null; then
-            print_warning "Failed to checkout version $version, using master branch"
+            local checkout_failed
+            checkout_failed=$(get_config "messages.build.checkout_failed")
+            checkout_failed="${checkout_failed/\{version\}/$version}"
+            print_warning "$checkout_failed"
         fi
     fi
     
     # Build process
-    print_status "Running autogen.sh..."
+    local autogen_msg
+    autogen_msg=$(get_config "messages.build.running_autogen")
+    print_status "$autogen_msg"
     if ! sh autogen.sh; then
-        print_error "autogen.sh failed"
+        local autogen_failed
+        autogen_failed=$(get_config "messages.build.autogen_failed")
+        print_error "$autogen_failed"
         cleanup_build_directory "$build_dir" "$original_dir"
         return 1
     fi
     
-    print_status "Running configure..."
+    local configure_msg
+    configure_msg=$(get_config "messages.build.running_configure")
+    print_status "$configure_msg"
     if ! ./configure; then
-        print_error "configure failed"
+        local configure_failed
+        configure_failed=$(get_config "messages.build.configure_failed")
+        print_error "$configure_failed"
         cleanup_build_directory "$build_dir" "$original_dir"
         return 1
     fi
     
-    print_status "Building tmux (this may take a few minutes)..."
+    local make_msg
+    make_msg=$(get_config "messages.build.building_make")
+    print_status "$make_msg"
     if ! make; then
-        print_error "make failed"
+        local make_failed
+        make_failed=$(get_config "messages.build.make_failed")
+        print_error "$make_failed"
         cleanup_build_directory "$build_dir" "$original_dir"
         return 1
     fi
     
-    print_status "Installing tmux..."
+    local installing_msg
+    installing_msg=$(get_config "messages.build.installing")
+    print_status "$installing_msg"
     if ! sudo make install; then
-        print_error "make install failed"
+        local install_failed
+        install_failed=$(get_config "messages.build.install_failed")
+        print_error "$install_failed"
         cleanup_build_directory "$build_dir" "$original_dir"
         return 1
     fi
@@ -92,7 +133,9 @@ build_tmux_from_source() {
     # Cleanup
     cleanup_build_directory "$build_dir" "$original_dir"
     
-    print_success "tmux built and installed from source"
+    local success_msg
+    success_msg=$(get_config "messages.build.build_success")
+    print_success "$success_msg"
     show_installation_info "tmux" "tmux"
     
     return 0
@@ -102,9 +145,17 @@ build_tmux_from_source() {
 perform_tmux_update() {
     local latest_version="$1"
     
+    # Read prompts from config
+    local prompt_msg
+    local prompt_opts
+    local prompt_default
+    prompt_msg=$(get_config "prompts.update_method.message")
+    prompt_opts=$(get_config "prompts.update_method.options")
+    prompt_default=$(get_config "prompts.update_method.default")
+    
     # Ask for update method
     local method
-    method=$(prompt_choice "Update method: (p)ackage manager or (s)ource build?" "p/s" "p")
+    method=$(prompt_choice "$prompt_msg" "$prompt_opts" "$prompt_default")
     
     if [[ "$method" =~ ^[Ss]$ ]]; then
         build_tmux_from_source "$latest_version"
@@ -112,15 +163,35 @@ perform_tmux_update() {
         # Try package manager update
         if ! update_via_package_manager "tmux"; then
             # No package manager found, offer source build
-            if prompt_yes_no "Build from source instead?"; then
+            local build_prompt
+            build_prompt=$(get_config "prompts.build_from_source.message")
+            if prompt_yes_no "$build_prompt"; then
                 build_tmux_from_source "$latest_version"
             else
+                # Display build instructions from config
                 print_status "Build from source instructions:"
-                print_status "1. Install dependencies: libevent-dev, ncurses-dev, build-essential, autoconf, automake, pkg-config, bison"
-                print_status "2. Clone: git clone https://github.com/tmux/tmux.git"
-                print_status "3. Build: cd tmux && sh autogen.sh && ./configure && make"
-                print_status "4. Install: sudo make install"
-                print_status "Reference: https://github.com/tmux/tmux"
+                
+                # Get dependencies list
+                local deps
+                deps=$(yq -r '.build_instructions.dependencies[]' "$CONFIG_FILE" | tr '\n' ', ' | sed 's/, $//')
+                print_status "1. Install dependencies: $deps"
+                
+                # Get build steps
+                local clone_cmd
+                clone_cmd=$(get_config "build_instructions.steps[0].command")
+                print_status "2. Clone: $clone_cmd"
+                
+                local build_cmd
+                build_cmd=$(get_config "build_instructions.steps[1].command")
+                print_status "3. Build: $build_cmd"
+                
+                local install_cmd
+                install_cmd=$(get_config "build_instructions.steps[2].command")
+                print_status "4. Install: $install_cmd"
+                
+                local ref_url
+                ref_url=$(get_config "build_instructions.reference.url")
+                print_status "Reference: $ref_url"
             fi
         else
             print_success "tmux updated via package manager"
@@ -130,34 +201,13 @@ perform_tmux_update() {
 }
 
 update_tmux() {
-    print_operation_header "Checking tmux updates..."
-    
-    # Check if tmux is installed
-    if ! check_app_installed_or_help "tmux" "tmux" "Install via: apt install tmux, brew install tmux, or build from source
-Source: https://github.com/tmux/tmux"; then
+    # Perform config-driven version check
+    if ! config_driven_version_check; then
         return 0
     fi
     
-    # Get current version
-    local current_version
-    current_version=$(tmux -V 2>/dev/null | sed -E 's/tmux ([0-9]+\.[0-9]+[a-z]?).*/\1/')
-    
-    if [ -z "$current_version" ]; then
-        print_error "Failed to get current tmux version"
-        ask_continue
-        return 1
-    fi
-    
-    # Get latest version from GitHub releases
-    local latest_version
-    latest_version=$(get_github_latest_version "tmux" "tmux")
-    
-    # Compare and report versions
-    compare_and_report_versions "$current_version" "$latest_version" "tmux"
-    local version_status=$?
-    
     # If no update needed
-    if [ $version_status -ne 2 ]; then
+    if [ $VERSION_STATUS -ne 2 ]; then
         ask_continue
         return 0
     fi
@@ -170,7 +220,7 @@ Source: https://github.com/tmux/tmux"; then
     fi
     
     print_status "Updating tmux..."
-    perform_tmux_update "$latest_version"
+    perform_tmux_update "$LATEST_VERSION"
     
     ask_continue
 }

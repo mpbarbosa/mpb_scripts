@@ -5,53 +5,59 @@
 # Handles version checking and updates for Kitty terminal.
 # Reference: https://github.com/kovidgoyal/kitty
 #
+# Version: 0.1.0-alpha
+# Date: 2025-11-25
+# Author: mpb
+# Repository: https://github.com/mpbarbosa/mpb_scripts
+# Status: Non-production (Alpha)
+#
+# Version History:
+#   0.1.0-alpha (2025-11-25) - Initial alpha version with upgrade script pattern
+#                            - Migrated from hardcoded to config-driven approach
+#                            - Uses config_driven_version_check() from upgrade_utils.sh
+#                            - All strings externalized to kitty.yaml
+#                            - Not ready for production use
+#
 
 # Load upgrade utilities library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 source "$LIB_DIR/upgrade_utils.sh"
 
+# Load configuration
+CONFIG_FILE="$SCRIPT_DIR/kitty.yaml"
+
 # Update Kitty terminal emulator
 check_kitty_update() {
-    local kitty_installer_url="https://sw.kovidgoyal.net/kitty/installer.sh"
-    
-    print_operation_header "Checking Kitty terminal updates..."
-    
-    # Check if Kitty is installed
-    if ! check_app_installed "kitty" "Kitty terminal"; then
+    # Perform config-driven version check
+    if ! config_driven_version_check; then
         ask_continue
         return 0
     fi
     
-    # Get current version
-    local current_version
-    current_version=$(kitty --version 2>/dev/null | awk '{print $2}')
-    
-    if [ -z "$current_version" ]; then
-        print_error "Failed to get current Kitty version"
-        ask_continue
-        return 1
-    fi
-    
-    # Get latest version from GitHub releases
-    local latest_version
-    latest_version=$(get_github_latest_version "kovidgoyal" "kitty")
-    
-    # Compare and report versions
-    compare_and_report_versions "$current_version" "$latest_version" "Kitty terminal"
-    local version_status=$?
-    
     # Handle update workflow
-    local update_cmd="print_status 'Downloading installer from: $kitty_installer_url' && "
-    if ${VERBOSE_MODE:-false}; then
-        update_cmd+="curl -L '$kitty_installer_url' | sh /dev/stdin && "
-    else
-        update_cmd+="curl -L '$kitty_installer_url' | sh /dev/stdin 2>&1 | tail -20 && "
-    fi
-    update_cmd+="print_success 'Kitty update completed' && "
-    update_cmd+="show_installation_info 'kitty' 'Kitty terminal'"
+    local installer_url
+    installer_url=$(get_config "update.installer_url")
+    local output_lines
+    output_lines=$(get_config "update.output_lines")
+    local downloading_msg
+    downloading_msg=$(get_config "messages.downloading_installer")
+    local success_msg
+    success_msg=$(get_config "messages.update_success")
+    local app_name
+    app_name=$(get_config "application.name")
     
-    if ! handle_update_prompt "Kitty terminal" "$version_status" "$update_cmd"; then
+    # Build update command
+    local update_cmd="print_status '$downloading_msg' && "
+    if ${VERBOSE_MODE:-false}; then
+        update_cmd+="curl -L '$installer_url' | sh /dev/stdin && "
+    else
+        update_cmd+="curl -L '$installer_url' | sh /dev/stdin 2>&1 | tail -$output_lines && "
+    fi
+    update_cmd+="print_success '$success_msg' && "
+    update_cmd+="show_installation_info '$app_name' '$APP_DISPLAY_NAME'"
+    
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" "$update_cmd"; then
         ask_continue
         return 1
     fi

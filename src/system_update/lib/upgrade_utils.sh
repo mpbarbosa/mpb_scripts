@@ -18,6 +18,109 @@ if [ -z "$BLUE" ]; then
 fi
 
 #=============================================================================
+# CONFIGURATION MANAGEMENT
+#=============================================================================
+
+# Read configuration values from YAML files using yq
+# Usage: get_config "key.path" "config_file.yaml"
+# Returns: configuration value
+# Example: get_config "application.name" "$CONFIG_FILE"
+get_config() {
+    local key="$1"
+    local config_file="${2:-$CONFIG_FILE}"
+    
+    if [ -z "$key" ]; then
+        echo ""
+        return 1
+    fi
+    
+    if [ ! -f "$config_file" ]; then
+        echo ""
+        return 1
+    fi
+    
+    yq -r ".$key" "$config_file" 2>/dev/null
+}
+
+# Config-driven application version check workflow
+# Performs complete version check using configuration file
+# Usage: config_driven_version_check
+# Requires: CONFIG_FILE environment variable set
+# Sets: CURRENT_VERSION, LATEST_VERSION, VERSION_STATUS, APP_DISPLAY_NAME
+# Returns: 0 on success, 1 on failure
+config_driven_version_check() {
+    # Print operation header
+    local checking_msg
+    checking_msg=$(get_config "messages.checking_updates")
+    print_operation_header "$checking_msg"
+    
+    # Check application installed
+    local app_name
+    app_name=$(get_config "application.name")
+    local app_cmd
+    app_cmd=$(get_config "application.command")
+    local install_help
+    install_help=$(get_config "messages.install_help")
+    
+    if ! check_app_installed_or_help "$app_name" "$app_cmd" "$install_help"; then
+        return 1
+    fi
+    
+    # Get current version
+    local version_cmd
+    version_cmd=$(get_config "version.command")
+    local version_regex
+    version_regex=$(get_config "version.regex")
+    CURRENT_VERSION=$($version_cmd 2>/dev/null | head -1 | sed -E "s/$version_regex/\1/")
+    
+    if [ -z "$CURRENT_VERSION" ]; then
+        local error_msg
+        error_msg=$(get_config "messages.failed_version")
+        if [ -z "$error_msg" ]; then
+            error_msg=$(get_config "messages.failed_get_version")
+        fi
+        print_error "$error_msg"
+        ask_continue
+        return 1
+    fi
+    
+    # Get latest version based on source
+    local version_source
+    version_source=$(get_config "version.source")
+    
+    case "$version_source" in
+        "github")
+            local github_owner
+            github_owner=$(get_config "version.github_owner")
+            local github_repo
+            github_repo=$(get_config "version.github_repo")
+            LATEST_VERSION=$(get_github_latest_version "$github_owner" "$github_repo")
+            ;;
+        "npm")
+            local npm_package
+            npm_package=$(get_config "application.npm_package")
+            LATEST_VERSION=$(get_npm_latest_version "$npm_package" --verbose="${VERBOSE_MODE:-false}")
+            ;;
+        *)
+            print_error "Unknown version source: $version_source"
+            return 1
+            ;;
+    esac
+    
+    # Get display name
+    APP_DISPLAY_NAME=$(get_config "application.display_name")
+    if [ -z "$APP_DISPLAY_NAME" ]; then
+        APP_DISPLAY_NAME="$app_name"
+    fi
+    
+    # Compare and report versions
+    compare_and_report_versions "$CURRENT_VERSION" "$LATEST_VERSION" "$APP_DISPLAY_NAME"
+    VERSION_STATUS=$?
+    
+    return 0
+}
+
+#=============================================================================
 # GITHUB API FUNCTIONS
 #=============================================================================
 

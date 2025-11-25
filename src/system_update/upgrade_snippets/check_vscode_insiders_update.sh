@@ -5,38 +5,68 @@
 # Handles version checking and updates for Visual Studio Code Insiders.
 # Reference: https://code.visualstudio.com/insiders
 #
+# Version: 0.1.0-alpha
+# Date: 2025-11-25
+# Author: mpb
+# Repository: https://github.com/mpbarbosa/mpb_scripts
+# Status: Non-production (Alpha)
+#
+# Version History:
+#   0.1.0-alpha (2025-11-25) - Initial alpha version with upgrade script pattern
+#                            - Migrated from hardcoded to config-driven approach
+#                            - Custom version fetching from Microsoft download redirect
+#                            - All strings externalized to vscode_insiders.yaml
+#                            - Not ready for production use
+#
 
 # Load upgrade utilities library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 source "$LIB_DIR/upgrade_utils.sh"
 
+# Load configuration
+CONFIG_FILE="$SCRIPT_DIR/vscode_insiders.yaml"
+
 # Get latest VSCode Insiders version from download redirect
 get_vscode_insiders_latest_version() {
+    local fetch_url
+    fetch_url=$(get_config "version.custom_fetch_url")
+    local version_regex
+    version_regex=$(get_config "version.version_regex")
+    
     local latest_version
-    latest_version=$(curl -sL 'https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64' -I 2>/dev/null | \
+    latest_version=$(curl -sL "$fetch_url" -I 2>/dev/null | \
                      grep -i 'location:' | \
-                     sed -E 's/.*code-insiders_([0-9.]+-[0-9]+)_.*/\1/' | \
+                     sed -E "s/.*$version_regex.*/\1/" | \
                      tr -d '\r')
     echo "$latest_version"
 }
 
 # Download and install VSCode Insiders .deb package
 download_and_install_vscode_insiders() {
+    local redirect_url
+    redirect_url=$(get_config "update.redirect_url")
+    
     local download_url
-    download_url=$(curl -sL 'https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64' -I 2>/dev/null | \
+    download_url=$(curl -sL "$redirect_url" -I 2>/dev/null | \
                    grep -i 'location:' | \
                    awk '{print $2}' | \
                    tr -d '\r')
     
     if [ -z "$download_url" ]; then
-        print_error "Failed to get download URL"
+        local error_msg
+        error_msg=$(get_config "messages.failed_download_url")
+        print_error "$error_msg"
         return 1
     fi
     
-    local temp_deb="/tmp/code-insiders.deb"
+    local temp_deb
+    temp_deb=$(get_config "update.temp_file")
     
-    print_status "Downloading VSCode Insiders from: $download_url"
+    local downloading_msg
+    downloading_msg=$(get_config "messages.downloading")
+    downloading_msg="${downloading_msg/\{url\}/$download_url}"
+    print_status "$downloading_msg"
     
     if ${VERBOSE_MODE:-false}; then
         wget --show-progress -O "$temp_deb" "$download_url"
@@ -45,30 +75,44 @@ download_and_install_vscode_insiders() {
     fi
     
     if [ $? -ne 0 ]; then
-        print_error "Failed to download VSCode Insiders"
+        local error_msg
+        error_msg=$(get_config "messages.failed_download")
+        print_error "$error_msg"
         rm -f "$temp_deb"
         return 1
     fi
     
-    print_status "Installing VSCode Insiders..."
+    local installing_msg
+    installing_msg=$(get_config "messages.installing")
+    print_status "$installing_msg"
+    
     if ! sudo -v; then
-        print_error "Failed to obtain sudo privileges"
+        local sudo_error
+        sudo_error=$(get_config "messages.failed_sudo")
+        print_error "$sudo_error"
         rm -f "$temp_deb"
         return 1
     fi
+    
+    local output_lines
+    output_lines=$(get_config "update.output_lines")
     
     if ${VERBOSE_MODE:-false}; then
         sudo dpkg -i "$temp_deb"
     else
-        sudo dpkg -i "$temp_deb" 2>&1 | tail -10
+        sudo dpkg -i "$temp_deb" 2>&1 | tail -"$output_lines"
     fi
     
     if [ $? -eq 0 ]; then
-        sudo apt-get install -f -y &> /dev/null
+        local fix_deps
+        fix_deps=$(get_config "update.fix_dependencies")
+        sudo $fix_deps &> /dev/null
         rm -f "$temp_deb"
         return 0
     else
-        print_error "Installation failed"
+        local install_error
+        install_error=$(get_config "messages.installation_failed")
+        print_error "$install_error"
         rm -f "$temp_deb"
         return 1
     fi
@@ -76,20 +120,33 @@ download_and_install_vscode_insiders() {
 
 # Update VSCode Insiders
 check_vscode_insiders_update() {
-    print_operation_header "Checking VSCode Insiders updates..."
+    local checking_msg
+    checking_msg=$(get_config "messages.checking_updates")
+    print_operation_header "$checking_msg"
     
     # Check if VSCode Insiders is installed
-    if ! check_app_installed "code-insiders" "VSCode Insiders"; then
+    local app_name
+    app_name=$(get_config "application.name")
+    local app_display
+    app_display=$(get_config "application.display_name")
+    local install_help
+    install_help=$(get_config "messages.install_help")
+    
+    if ! check_app_installed_or_help "$app_name" "$app_display" "$install_help"; then
         ask_continue
         return 0
     fi
     
     # Get current version
     local current_version
-    current_version=$(code-insiders --version 2>/dev/null | head -1)
+    local version_cmd
+    version_cmd=$(get_config "version.command")
+    current_version=$($version_cmd 2>/dev/null | head -1)
     
     if [ -z "$current_version" ]; then
-        print_error "Failed to get current VSCode Insiders version"
+        local error_msg
+        error_msg=$(get_config "messages.failed_version")
+        print_error "$error_msg"
         ask_continue
         return 1
     fi
@@ -102,7 +159,9 @@ check_vscode_insiders_update() {
     print_status "Latest version: $latest_version"
     
     if [ -z "$latest_version" ]; then
-        print_error "Failed to fetch latest version"
+        local error_msg
+        error_msg=$(get_config "messages.failed_latest_version")
+        print_error "$error_msg"
         ask_continue
         return 1
     fi
@@ -115,18 +174,27 @@ check_vscode_insiders_update() {
     # Determine version status manually (VSCode has custom version format)
     local version_status=0
     if [ "$current_version_compare" != "$latest_version_compare" ]; then
-        print_warning "VSCode Insiders update available: $current_version → $latest_version"
+        local update_msg
+        update_msg=$(get_config "messages.update_available")
+        update_msg="${update_msg/\{current\}/$current_version}"
+        update_msg="${update_msg/\{latest\}/$latest_version}"
+        print_warning "$update_msg"
         version_status=2
     else
-        print_success "VSCode Insiders is up to date"
+        local uptodate_msg
+        uptodate_msg=$(get_config "messages.up_to_date")
+        print_success "$uptodate_msg"
         version_status=0
     fi
     
     # Handle update workflow
-    if ! handle_update_prompt "VSCode Insiders" "$version_status" \
+    local success_msg
+    success_msg=$(get_config "messages.update_success")
+    
+    if ! handle_update_prompt "$app_display" "$version_status" \
         "download_and_install_vscode_insiders && \
-         print_success 'VSCode Insiders update completed' && \
-         show_installation_info 'code-insiders' 'VSCode Insiders'"; then
+         print_success '$success_msg' && \
+         show_installation_info '$app_name' '$app_display'"; then
         ask_continue
         return 1
     fi
