@@ -38,6 +38,6 @@ version:
 # Update configuration
 update:
   installer_url: "https://sw.kovidgoyal.net/kitty/installer.sh"
-  method: "installer_script"
+  method: "curl_installer"
   output_lines: 20
   requires_sudo: false

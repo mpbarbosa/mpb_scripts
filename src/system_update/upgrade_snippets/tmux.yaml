@@ -1,13 +1,15 @@
 # Tmux Update Configuration
-# Extracted from update_tmux.sh lines 24-100, 107-123, 170, 175-176
+# Extracted from update_tmux.sh lines 24-100, 107-123, 170, 175-176, 222
 #
-# Version: 0.2.1-alpha
+# Version: 0.2.2-alpha
 # Date: 2025-11-25
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # Status: Non-production (Alpha)
 #
 # Version History:
+#   0.2.2-alpha (2025-11-25) - Extracted update messages from line 222 and surrounding
+#                            - Added messages.updating and messages.skipping_update
 #   0.2.1-alpha (2025-11-25) - Extracted git clone URL from line 62
 #                            - Added messages.build.clone_url configuration
 #   0.2.0-alpha (2025-11-25) - Added build_tmux_from_source() function strings
@@ -25,6 +27,8 @@ messages:
     Install via: apt install tmux, brew install tmux, or build from source
     Source: https://github.com/tmux/tmux
   failed_get_version: "Failed to get current tmux version"
+  updating: "Updating tmux..."
+  skipping_update: "Skipping tmux update"
   
   # Build from source messages
   build:

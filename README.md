@@ -24,17 +24,23 @@ mpb_scripts/
 │       │   ├── pip_manager.sh
 │       │   ├── npm_manager.sh
 │       │   ├── check_calibre_update.sh
+│       │   ├── calibre.yaml
 │       │   ├── check_kitty_update.sh
+│       │   ├── kitty.yaml
 │       │   ├── check_vscode_insiders_update.sh
+│       │   ├── vscode_insiders.yaml
 │       │   ├── update_github_copilot_cli.sh
-│       │   └── update_tmux.sh
+│       │   ├── github_copilot_cli.yaml
+│       │   ├── update_tmux.sh
+│       │   └── tmux.yaml
 │       ├── README.md         # Modular architecture documentation
 │       ├── ARCHITECTURE.md   # Visual architecture diagrams
 │       ├── REFACTORING_SUMMARY.md
 │       └── PROJECT_SUMMARY.txt
 ├── docs/                     # Technical documentation
 │   ├── system_update_design_document.md
-│   └── system_update_technical_specification.md
+│   ├── system_update_technical_specification.md
+│   └── upgrade_script_pattern_documentation.md
 ├── prompts/                  # Workflow and prompt files
 ├── LICENSE                   # MIT License
 └── README.md                 # This file
@@ -152,6 +158,30 @@ The repository includes comprehensive technical documentation in the `docs/` dir
 
 - **[system_update_technical_specification.md](docs/system_update_technical_specification.md)**: Complete technical specification for the system_update.sh script, including functional requirements, non-functional requirements, architecture specifications, and quality assurance procedures.
 - **[system_update_design_document.md](docs/system_update_design_document.md)**: Architectural design document describing implementation strategy, modular architecture, component relationships, and design patterns.
+- **[upgrade_script_pattern_documentation.md](docs/upgrade_script_pattern_documentation.md)**: Comprehensive documentation for the standardized upgrade script pattern used across all application update scripts (v1.1.0).
+
+### Upgrade Script Pattern
+
+All application-specific update scripts in `src/system_update/upgrade_snippets/` follow a standardized pattern (v1.1.0) that ensures consistency, maintainability, and code reusability:
+
+**Pattern Features:**
+- **Config-driven**: All configuration externalized to YAML files
+- **Reusable library functions**: Common update logic centralized in `upgrade_utils.sh`
+- **Three implementation methods**: 
+  - Method 1: Standard Pattern (config + library)
+  - Method 2: Installer Script Pattern (shell/deb installers)
+  - Method 3: Custom Update Logic (complex workflows)
+- **Consistent structure**: Version headers, error handling, user prompts
+- **Alpha versioning**: All scripts currently in non-production alpha status
+
+**Current Implementations:**
+- `update_github_copilot_cli.sh` - Method 1 (npm-based)
+- `check_kitty_update.sh` - Method 2 (shell installer)
+- `check_calibre_update.sh` - Method 2 (shell installer)
+- `check_vscode_insiders_update.sh` - Method 2 (.deb package)
+- `update_tmux.sh` - Method 3 (build from source)
+
+See [upgrade_script_pattern_documentation.md](docs/upgrade_script_pattern_documentation.md) for complete pattern specification and implementation guidelines.
 
 ## Development
 

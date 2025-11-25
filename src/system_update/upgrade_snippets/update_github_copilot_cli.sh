@@ -3,6 +3,24 @@
 # update_github_copilot_cli.sh - GitHub Copilot CLI Update Manager
 #
 # Handles version checking and updates for GitHub Copilot CLI.
+# Reference: https://github.com/github/copilot-cli
+#
+# Version: 1.0.0-alpha
+# Date: 2025-11-25
+# Author: mpb
+# Repository: https://github.com/mpbarbosa/mpb_scripts
+# Status: Non-production (Alpha)
+#
+# Version History:
+#   1.0.0-alpha (2025-11-25) - Aligned with upgrade script pattern v1.1.0
+#                            - Uses Method 1: Direct Command Update
+#                            - Added complete version header
+#                            - Follows check_kitty_update.sh pattern
+#   0.x.x (2025-11-24)     - Previous iterations with config extraction
+#
+# Dependencies:
+#   - npm (Node Package Manager)
+#   - Node.js (required by npm)
 #
 
 # Load upgrade utilities library
@@ -11,8 +29,10 @@ LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 source "$LIB_DIR/upgrade_utils.sh"
 
 # Load configuration
-export CONFIG_FILE="$SCRIPT_DIR/github_copilot_cli.yaml"
+CONFIG_FILE="$SCRIPT_DIR/github_copilot_cli.yaml"
 
+# Update GitHub Copilot CLI
+# Uses Method 1: Direct Command Update (see upgrade_script_pattern_documentation.md)
 update_github_copilot_cli() {
     # Check npm dependency first
     local dep_name
@@ -23,15 +43,17 @@ update_github_copilot_cli() {
     dep_help=$(get_config "dependencies[0].help")
     
     if ! check_app_installed_or_help "$dep_name" "$dep_cmd" "$dep_help"; then
+        ask_continue
         return 0
     fi
     
     # Perform config-driven version check
     if ! config_driven_version_check; then
+        ask_continue
         return 0
     fi
     
-    # Handle update workflow
+    # Handle update workflow with direct npm command
     local update_cmd
     update_cmd=$(get_config "update.command")
     local output_lines

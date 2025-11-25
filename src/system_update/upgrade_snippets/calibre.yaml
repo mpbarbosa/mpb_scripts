@@ -43,7 +43,7 @@ update:
   installer_url: "https://download.calibre-ebook.com/linux-installer.sh"
   requires_sudo: true
   output_lines: 20
-  method: "installer_script"
+  method: "wget_sudo_installer"
 
 # Prompts
 prompts:

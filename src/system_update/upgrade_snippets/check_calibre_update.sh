@@ -35,56 +35,8 @@ check_calibre_update() {
         return 0
     fi
     
-    # Update if needed (VERSION_STATUS: 0=equal, 1=current>latest, 2=update available)
-    if [ $VERSION_STATUS -eq 2 ]; then
-        local confirm_msg
-        confirm_msg=$(get_config "prompts.confirm_update.message")
-        
-        if prompt_yes_no "$confirm_msg"; then
-            local updating_msg
-            updating_msg=$(get_config "messages.updating")
-            print_status "$updating_msg"
-            
-            local downloading_msg
-            downloading_msg=$(get_config "messages.downloading_installer")
-            print_status "$downloading_msg"
-            
-            # Check for sudo privileges
-            if ! sudo -v; then
-                local sudo_error
-                sudo_error=$(get_config "messages.sudo_failed")
-                print_error "$sudo_error"
-                ask_continue
-                return 1
-            fi
-            
-            # Download and run installer
-            local installer_url
-            installer_url=$(get_config "update.installer_url")
-            local output_lines
-            output_lines=$(get_config "update.output_lines")
-            
-            if ${VERBOSE_MODE:-false}; then
-                wget -nv -O- "$installer_url" | sudo sh /dev/stdin
-            else
-                wget -nv -O- "$installer_url" | sudo sh /dev/stdin 2>&1 | tail -"$output_lines"
-            fi
-            
-            local success_msg
-            success_msg=$(get_config "messages.update_success")
-            print_success "$success_msg"
-            
-            local app_name
-            app_name=$(get_config "application.name")
-            show_installation_info "$app_name" "$APP_DISPLAY_NAME"
-        else
-            local skip_msg
-            skip_msg=$(get_config "messages.skipping_update")
-            print_status "$skip_msg"
-        fi
-    fi
-    
-    ask_continue
+    # Handle installer script update (extracted to upgrade_utils.sh)
+    handle_installer_script_update
 }
 
 check_calibre_update

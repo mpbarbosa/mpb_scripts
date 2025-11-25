@@ -5,18 +5,22 @@
 # Handles version checking and updates for Visual Studio Code Insiders.
 # Reference: https://code.visualstudio.com/insiders
 #
-# Version: 0.1.0-alpha
+# Version: 1.0.0-alpha
 # Date: 2025-11-25
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # Status: Non-production (Alpha)
 #
 # Version History:
+#   1.0.0-alpha (2025-11-25) - Aligned with upgrade script pattern v1.1.0
+#                            - Uses Method 2: Installer Script Pattern (deb_package)
+#                            - Simplified main function to use handle_deb_package_update()
+#                            - Removed download_and_install_vscode_insiders() function
+#                            - Follows check_kitty_update.sh pattern
+#                            - Custom version checking in perform_vscode_version_check()
 #   0.1.0-alpha (2025-11-25) - Initial alpha version with upgrade script pattern
 #                            - Migrated from hardcoded to config-driven approach
-#                            - Custom version fetching from Microsoft download redirect
 #                            - All strings externalized to vscode_insiders.yaml
-#                            - Not ready for production use
 #
 
 # Load upgrade utilities library
@@ -42,84 +46,9 @@ get_vscode_insiders_latest_version() {
     echo "$latest_version"
 }
 
-# Download and install VSCode Insiders .deb package
-download_and_install_vscode_insiders() {
-    local redirect_url
-    redirect_url=$(get_config "update.redirect_url")
-    
-    local download_url
-    download_url=$(curl -sL "$redirect_url" -I 2>/dev/null | \
-                   grep -i 'location:' | \
-                   awk '{print $2}' | \
-                   tr -d '\r')
-    
-    if [ -z "$download_url" ]; then
-        local error_msg
-        error_msg=$(get_config "messages.failed_download_url")
-        print_error "$error_msg"
-        return 1
-    fi
-    
-    local temp_deb
-    temp_deb=$(get_config "update.temp_file")
-    
-    local downloading_msg
-    downloading_msg=$(get_config "messages.downloading")
-    downloading_msg="${downloading_msg/\{url\}/$download_url}"
-    print_status "$downloading_msg"
-    
-    if ${VERBOSE_MODE:-false}; then
-        wget --show-progress -O "$temp_deb" "$download_url"
-    else
-        wget -q --show-progress -O "$temp_deb" "$download_url"
-    fi
-    
-    if [ $? -ne 0 ]; then
-        local error_msg
-        error_msg=$(get_config "messages.failed_download")
-        print_error "$error_msg"
-        rm -f "$temp_deb"
-        return 1
-    fi
-    
-    local installing_msg
-    installing_msg=$(get_config "messages.installing")
-    print_status "$installing_msg"
-    
-    if ! sudo -v; then
-        local sudo_error
-        sudo_error=$(get_config "messages.failed_sudo")
-        print_error "$sudo_error"
-        rm -f "$temp_deb"
-        return 1
-    fi
-    
-    local output_lines
-    output_lines=$(get_config "update.output_lines")
-    
-    if ${VERBOSE_MODE:-false}; then
-        sudo dpkg -i "$temp_deb"
-    else
-        sudo dpkg -i "$temp_deb" 2>&1 | tail -"$output_lines"
-    fi
-    
-    if [ $? -eq 0 ]; then
-        local fix_deps
-        fix_deps=$(get_config "update.fix_dependencies")
-        sudo $fix_deps &> /dev/null
-        rm -f "$temp_deb"
-        return 0
-    else
-        local install_error
-        install_error=$(get_config "messages.installation_failed")
-        print_error "$install_error"
-        rm -f "$temp_deb"
-        return 1
-    fi
-}
-
-# Update VSCode Insiders
-check_vscode_insiders_update() {
+# Custom version check for VSCode Insiders
+# VSCode Insiders has a non-standard version format that requires custom handling
+perform_vscode_version_check() {
     local checking_msg
     checking_msg=$(get_config "messages.checking_updates")
     print_operation_header "$checking_msg"
@@ -133,8 +62,7 @@ check_vscode_insiders_update() {
     install_help=$(get_config "messages.install_help")
     
     if ! check_app_installed_or_help "$app_name" "$app_display" "$install_help"; then
-        ask_continue
-        return 0
+        return 1
     fi
     
     # Get current version
@@ -147,7 +75,6 @@ check_vscode_insiders_update() {
         local error_msg
         error_msg=$(get_config "messages.failed_version")
         print_error "$error_msg"
-        ask_continue
         return 1
     fi
     
@@ -162,7 +89,6 @@ check_vscode_insiders_update() {
         local error_msg
         error_msg=$(get_config "messages.failed_latest_version")
         print_error "$error_msg"
-        ask_continue
         return 1
     fi
     
@@ -172,32 +98,41 @@ check_vscode_insiders_update() {
     local latest_version_compare="${latest_version%-*}"
     
     # Determine version status manually (VSCode has custom version format)
-    local version_status=0
+    VERSION_STATUS=0
     if [ "$current_version_compare" != "$latest_version_compare" ]; then
         local update_msg
         update_msg=$(get_config "messages.update_available")
         update_msg="${update_msg/\{current\}/$current_version}"
         update_msg="${update_msg/\{latest\}/$latest_version}"
         print_warning "$update_msg"
-        version_status=2
+        VERSION_STATUS=2
     else
         local uptodate_msg
         uptodate_msg=$(get_config "messages.up_to_date")
         print_success "$uptodate_msg"
-        version_status=0
+        VERSION_STATUS=0
     fi
     
-    # Handle update workflow
-    local success_msg
-    success_msg=$(get_config "messages.update_success")
+    # Set global variables for handle_update_prompt
+    CURRENT_VERSION="$current_version"
+    LATEST_VERSION="$latest_version"
+    APP_DISPLAY_NAME="$app_display"
     
-    if ! handle_update_prompt "$app_display" "$version_status" \
-        "download_and_install_vscode_insiders && \
-         print_success '$success_msg' && \
-         show_installation_info '$app_name' '$app_display'"; then
+    return 0
+}
+
+# Update VSCode Insiders
+# Uses Method 2: Installer Script Pattern (see upgrade_script_pattern_documentation.md)
+# Note: VSCode uses .deb package download instead of shell installer
+check_vscode_insiders_update() {
+    # Perform custom version check (VSCode has non-standard version format)
+    if ! perform_vscode_version_check; then
         ask_continue
-        return 1
+        return 0
     fi
+    
+    # Handle .deb package download and installation (extracted to upgrade_utils.sh)
+    handle_deb_package_update
 }
 
 check_vscode_insiders_update

@@ -5,6 +5,19 @@
 # Handles version checking and updates for tmux terminal multiplexer.
 # Reference: https://github.com/tmux/tmux
 #
+# Version: 1.0.0-alpha
+# Date: 2025-11-25
+# Author: mpb
+# Repository: https://github.com/mpbarbosa/mpb_scripts
+# Status: Non-production (Alpha)
+#
+# Version History:
+#   1.0.0-alpha (2025-11-25) - Aligned with upgrade script pattern v1.1.0
+#                            - Uses Method 3: Custom Update Logic
+#                            - Simplified main function structure
+#                            - Follows check_kitty_update.sh pattern
+#   0.x.x (2025-11-24)     - Previous iterations with config extraction
+#
 # Dependencies:
 #   - libevent 2.x (https://github.com/libevent/libevent/releases/latest)
 #   - ncurses (https://invisible-mirror.net/archives/ncurses/)
@@ -200,29 +213,28 @@ perform_tmux_update() {
     fi
 }
 
+# Update tmux terminal multiplexer
+# Uses Method 3: Custom Update Logic (see upgrade_script_pattern_documentation.md)
 update_tmux() {
     # Perform config-driven version check
     if ! config_driven_version_check; then
-        return 0
-    fi
-    
-    # If no update needed
-    if [ $VERSION_STATUS -ne 2 ]; then
         ask_continue
         return 0
     fi
     
-    # Update if needed
-    if ! prompt_yes_no "Update tmux?"; then
-        print_status "Skipping tmux update"
+    # Handle update workflow with custom perform_tmux_update logic
+    local updating_msg
+    updating_msg=$(get_config "messages.updating")
+    local app_name
+    app_name=$(get_config "application.name")
+    
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "print_status '$updating_msg' && \
+         perform_tmux_update '$LATEST_VERSION' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
         ask_continue
-        return 0
+        return 1
     fi
-    
-    print_status "Updating tmux..."
-    perform_tmux_update "$LATEST_VERSION"
-    
-    ask_continue
 }
 
 update_tmux

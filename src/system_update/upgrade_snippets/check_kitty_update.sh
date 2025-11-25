@@ -35,32 +35,8 @@ check_kitty_update() {
         return 0
     fi
     
-    # Handle update workflow
-    local installer_url
-    installer_url=$(get_config "update.installer_url")
-    local output_lines
-    output_lines=$(get_config "update.output_lines")
-    local downloading_msg
-    downloading_msg=$(get_config "messages.downloading_installer")
-    local success_msg
-    success_msg=$(get_config "messages.update_success")
-    local app_name
-    app_name=$(get_config "application.name")
-    
-    # Build update command
-    local update_cmd="print_status '$downloading_msg' && "
-    if ${VERBOSE_MODE:-false}; then
-        update_cmd+="curl -L '$installer_url' | sh /dev/stdin && "
-    else
-        update_cmd+="curl -L '$installer_url' | sh /dev/stdin 2>&1 | tail -$output_lines && "
-    fi
-    update_cmd+="print_success '$success_msg' && "
-    update_cmd+="show_installation_info '$app_name' '$APP_DISPLAY_NAME'"
-    
-    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" "$update_cmd"; then
-        ask_continue
-        return 1
-    fi
+    # Handle installer script update (extracted to upgrade_utils.sh)
+    handle_installer_script_update
 }
 
 check_kitty_update

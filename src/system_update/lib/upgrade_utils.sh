@@ -242,6 +242,15 @@ prompt_choice() {
     fi
 }
 
+# Generic update confirmation prompt
+# Usage: prompt_update_confirmation "application_name"
+# Returns: 0 for yes (proceed with update), 1 for no (skip update)
+# Example: prompt_update_confirmation "tmux"
+prompt_update_confirmation() {
+    local app_name="$1"
+    prompt_yes_no "Update $app_name?"
+}
+
 #=============================================================================
 # PACKAGE MANAGER FUNCTIONS
 #=============================================================================
@@ -403,6 +412,143 @@ handle_update_prompt() {
         else
             return 1
         fi
+    fi
+    
+    return 0
+}
+
+# Generic installer script update handler
+# Handles common pattern of downloading and running an installer script
+# Usage: handle_installer_script_update
+# Requires: CONFIG_FILE with update.installer_url, update.output_lines, messages.*
+# Returns: 0 on success, 1 on failure
+handle_installer_script_update() {
+    # Load config values
+    local installer_url
+    installer_url=$(get_config "update.installer_url")
+    local output_lines
+    output_lines=$(get_config "update.output_lines")
+    local downloading_msg
+    downloading_msg=$(get_config "messages.downloading_installer")
+    local success_msg
+    success_msg=$(get_config "messages.update_success")
+    local app_name
+    app_name=$(get_config "application.name")
+    local install_method
+    install_method=$(get_config "update.method")
+    
+    # Build update command based on method
+    local update_cmd
+    case "$install_method" in
+        "curl_installer")
+            if ${VERBOSE_MODE:-false}; then
+                update_cmd="curl -L '$installer_url' | sh /dev/stdin"
+            else
+                update_cmd="curl -L '$installer_url' | sh /dev/stdin 2>&1 | tail -$output_lines"
+            fi
+            ;;
+        "wget_installer")
+            if ${VERBOSE_MODE:-false}; then
+                update_cmd="wget -nv -O- '$installer_url' | sh /dev/stdin"
+            else
+                update_cmd="wget -nv -O- '$installer_url' | sh /dev/stdin 2>&1 | tail -$output_lines"
+            fi
+            ;;
+        "wget_sudo_installer")
+            if ${VERBOSE_MODE:-false}; then
+                update_cmd="sudo -v && wget -nv -O- '$installer_url' | sudo sh /dev/stdin"
+            else
+                update_cmd="sudo -v && wget -nv -O- '$installer_url' | sudo sh /dev/stdin 2>&1 | tail -$output_lines"
+            fi
+            ;;
+        *)
+            print_error "Unknown install method: $install_method"
+            return 1
+            ;;
+    esac
+    
+    # Execute update via handle_update_prompt
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "print_status '$downloading_msg' && \
+         $update_cmd && \
+         print_success '$success_msg' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
+        ask_continue
+        return 1
+    fi
+    
+    return 0
+}
+
+# Handle .deb package download and installation
+# Used by scripts that install via downloadable .deb packages
+# Reads configuration from CONFIG_FILE YAML
+handle_deb_package_update() {
+    # Load config values
+    local redirect_url
+    redirect_url=$(get_config "update.redirect_url")
+    local temp_file
+    temp_file=$(get_config "update.temp_file")
+    local output_lines
+    output_lines=$(get_config "update.output_lines")
+    local success_msg
+    success_msg=$(get_config "messages.update_success")
+    local app_name
+    app_name=$(get_config "application.name")
+    local fix_deps
+    fix_deps=$(get_config "update.fix_dependencies")
+    
+    # Get actual download URL from redirect
+    local download_url
+    download_url=$(curl -sL "$redirect_url" -I 2>/dev/null | \
+                   grep -i 'location:' | \
+                   awk '{print $2}' | \
+                   tr -d '\r')
+    
+    if [ -z "$download_url" ]; then
+        local error_msg
+        error_msg=$(get_config "messages.failed_download_url")
+        print_error "$error_msg"
+        ask_continue
+        return 1
+    fi
+    
+    # Build download and install command
+    local downloading_msg
+    downloading_msg=$(get_config "messages.downloading")
+    downloading_msg="${downloading_msg/\{url\}/$download_url}"
+    
+    local installing_msg
+    installing_msg=$(get_config "messages.installing")
+    
+    local update_cmd
+    if ${VERBOSE_MODE:-false}; then
+        update_cmd="print_status '$downloading_msg' && \
+                    wget --show-progress -O '$temp_file' '$download_url' && \
+                    print_status '$installing_msg' && \
+                    sudo -v && \
+                    sudo dpkg -i '$temp_file' && \
+                    sudo $fix_deps &> /dev/null && \
+                    rm -f '$temp_file'"
+    else
+        update_cmd="print_status '$downloading_msg' && \
+                    wget -q --show-progress -O '$temp_file' '$download_url' && \
+                    print_status '$installing_msg' && \
+                    sudo -v && \
+                    sudo dpkg -i '$temp_file' 2>&1 | tail -$output_lines && \
+                    sudo $fix_deps &> /dev/null && \
+                    rm -f '$temp_file'"
+    fi
+    
+    # Execute update via handle_update_prompt
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "$update_cmd && \
+         print_success '$success_msg' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
+        # Cleanup on failure
+        rm -f "$temp_file" 2>/dev/null
+        ask_continue
+        return 1
     fi
     
     return 0

@@ -1,7 +1,7 @@
 # Upgrade Script Pattern Documentation
 
-**Version:** 1.0.0  
-**Date:** 2025-11-24  
+**Version:** 1.1.0  
+**Date:** 2025-11-25  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts
 
@@ -604,23 +604,17 @@ update_tmux() {
         return 0
     fi
     
-    # If no update needed
-    if [ $VERSION_STATUS -ne 2 ]; then
+    # Handle update workflow (pattern from update_github_copilot_cli.sh lines 34-50)
+    local updating_msg=$(get_config "messages.updating")
+    local app_name=$(get_config "application.name")
+    
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "print_status '$updating_msg' && \
+         perform_tmux_update '$LATEST_VERSION' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
         ask_continue
-        return 0
+        return 1
     fi
-    
-    # Update if needed
-    if ! prompt_yes_no "Update tmux?"; then
-        print_status "Skipping tmux update"
-        ask_continue
-        return 0
-    fi
-    
-    print_status "Updating tmux..."
-    perform_tmux_update "$LATEST_VERSION"
-    
-    ask_continue
 }
 
 update_tmux
@@ -629,6 +623,79 @@ update_tmux
 **Configuration: `tmux.yaml`**
 
 See [YAML Configuration Schema](#yaml-configuration-schema) Example 2.
+
+### Example 3: Installer Script Pattern (Simplified)
+
+**File: `check_kitty_update.sh`**
+
+This example demonstrates the ultra-simple pattern using `handle_installer_script_update()`:
+
+```bash
+#!/bin/bash
+#
+# check_kitty_update.sh - Kitty terminal emulator update manager
+#
+
+# Load upgrade utilities library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+source "$LIB_DIR/upgrade_utils.sh"
+
+# Load configuration
+CONFIG_FILE="$SCRIPT_DIR/kitty.yaml"
+
+# Update Kitty terminal emulator
+check_kitty_update() {
+    # Perform config-driven version check
+    if ! config_driven_version_check; then
+        ask_continue
+        return 0
+    fi
+    
+    # Handle installer script update (extracted to upgrade_utils.sh)
+    handle_installer_script_update
+}
+
+check_kitty_update
+```
+
+**Configuration: `kitty.yaml`**
+
+```yaml
+# Application identifiers
+application:
+  name: "kitty"
+  command: "kitty"
+  display_name: "Kitty Terminal"
+
+# Version extraction
+version:
+  command: "kitty --version"
+  regex: 'kitty ([0-9]+\.[0-9]+\.[0-9]+)'
+  source: "github"
+  github_owner: "kovidgoyal"
+  github_repo: "kitty"
+
+# Messages
+messages:
+  checking_updates: "Checking Kitty updates..."
+  downloading_installer: "Downloading Kitty installer..."
+  update_success: "Kitty updated successfully!"
+
+# Update configuration
+update:
+  method: "curl_installer"  # curl_installer, wget_installer, wget_sudo_installer
+  installer_url: "https://sw.kovidgoyal.net/kitty/installer.sh"
+  output_lines: 20
+  requires_sudo: false
+```
+
+**Benefits:**
+
+- **10 lines total** in the main function
+- **Zero duplication** - all installer logic in library
+- **Config-driven** - method selection via YAML
+- **Reusable** - same pattern for any installer-script app
 
 ---
 
@@ -858,6 +925,130 @@ Update repository README with:
 - Application name
 - Installation requirements
 - Usage instructions
+
+---
+
+## Update Methods and Patterns
+
+The pattern supports three primary update approaches, each with specific use cases and implementation strategies.
+
+### Method 1: Direct Command Update
+
+**Use Case:** Applications updated via simple commands (npm, pip, apt, etc.)
+
+**Implementation:**
+
+```bash
+update_myapp() {
+    if ! config_driven_version_check; then
+        return 0
+    fi
+    
+    local update_cmd=$(get_config "update.command")
+    local output_lines=$(get_config "update.output_lines")
+    local success_msg=$(get_config "messages.update_success")
+    local app_name=$(get_config "application.name")
+    
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "$update_cmd 2>&1 | tail -$output_lines && \
+         print_success '$success_msg' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
+        ask_continue
+        return 1
+    fi
+}
+```
+
+**Example:** `update_github_copilot_cli.sh` (npm install)
+
+### Method 2: Installer Script Update
+
+**Use Case:** Applications distributed as downloadable shell installers
+
+**Implementation:**
+
+```bash
+check_myapp_update() {
+    if ! config_driven_version_check; then
+        ask_continue
+        return 0
+    fi
+    
+    # Single function call - everything handled by library
+    handle_installer_script_update
+}
+```
+
+**YAML Configuration:**
+
+```yaml
+update:
+  method: "curl_installer"  # curl_installer, wget_installer, wget_sudo_installer
+  installer_url: "https://example.com/install.sh"
+  output_lines: 20
+  requires_sudo: false  # or true
+```
+
+**Supported Methods:**
+
+- `curl_installer`: Download with curl, pipe to sh (no sudo)
+- `wget_installer`: Download with wget, pipe to sh (no sudo)
+- `wget_sudo_installer`: Download with wget, pipe to sudo sh (requires sudo)
+
+**Benefits:**
+
+- **Minimal code**: 10 lines total
+- **Zero duplication**: All logic in `handle_installer_script_update()`
+- **Automatic handling**: VERBOSE_MODE, error messages, success
+- **Config-driven**: Change method via YAML
+
+**Examples:** 
+- `check_kitty_update.sh` (curl_installer)
+- `check_calibre_update.sh` (wget_sudo_installer)
+
+### Method 3: Custom Update Logic
+
+**Use Case:** Complex scenarios (build from source, multiple options, interactive)
+
+**Implementation:**
+
+```bash
+update_myapp() {
+    if ! config_driven_version_check; then
+        return 0
+    fi
+    
+    local updating_msg=$(get_config "messages.updating")
+    local app_name=$(get_config "application.name")
+    
+    if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+        "print_status '$updating_msg' && \
+         perform_myapp_update '$LATEST_VERSION' && \
+         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
+        ask_continue
+        return 1
+    fi
+}
+
+perform_myapp_update() {
+    local version=$1
+    # Custom logic here:
+    # - Interactive prompts
+    # - Build from source
+    # - Package manager fallback
+    # - Method selection
+}
+```
+
+**Example:** `update_tmux.sh` (package manager or build from source)
+
+### Choosing the Right Method
+
+| Method | Lines of Code | Complexity | Use When |
+|--------|---------------|------------|----------|
+| Direct Command | ~20 | Low | Simple update commands |
+| Installer Script | ~10 | Very Low | Shell script installers |
+| Custom Logic | Variable | High | Complex/interactive updates |
 
 ---
 
@@ -1120,6 +1311,121 @@ if config_driven_version_check; then
 fi
 ```
 
+#### `handle_update_prompt(app_name, version_status, update_callback)`
+
+Handles the complete update workflow after version checking.
+
+**Parameters:**
+
+- `app_name` (string): Application display name
+- `version_status` (integer): Version comparison result (0=same, 1=ahead, 2=update)
+- `update_callback` (string): Command or function to execute for update
+
+**Behavior:**
+
+- If `version_status` ≠ 2: Calls `ask_continue` and returns 0
+- If update available: Prompts user for confirmation
+- If user declines: Shows skip message, calls `ask_continue`, returns 0
+- If user accepts: Executes `update_callback`
+
+**Returns:**
+
+- `0`: Success or skip
+- `1`: Failure
+
+**Example:**
+
+```bash
+if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
+    "npm install -g @github/copilot && \
+     print_success 'Update complete' && \
+     show_installation_info 'gh-copilot' 'GitHub Copilot CLI'"; then
+    return 1
+fi
+```
+
+#### `handle_installer_script_update()`
+
+Generic handler for applications that use downloadable installer scripts.
+
+**Requires:**
+
+- `CONFIG_FILE` with complete configuration
+- `update.method`: One of `curl_installer`, `wget_installer`, `wget_sudo_installer`
+- `update.installer_url`: URL to installer script
+- `update.output_lines`: Number of lines to show
+- `messages.downloading_installer`: Download message
+- `messages.update_success`: Success message
+- `application.name`: Application name
+
+**Supported Methods:**
+
+- `curl_installer`: Downloads with curl, no sudo
+- `wget_installer`: Downloads with wget, no sudo
+- `wget_sudo_installer`: Downloads with wget, requires sudo
+
+**Behavior:**
+
+- Loads all config values
+- Builds appropriate update command based on method
+- Handles VERBOSE_MODE (full output vs tailed)
+- Executes via `handle_update_prompt`
+- Calls `ask_continue` and handles errors
+
+**Returns:**
+
+- `0`: Success
+- `1`: Failure or user declined
+
+**Example:**
+
+```bash
+# In your upgrade script (minimal implementation)
+check_myapp_update() {
+    if ! config_driven_version_check; then
+        ask_continue
+        return 0
+    fi
+    
+    handle_installer_script_update
+}
+```
+
+**YAML Configuration Required:**
+
+```yaml
+update:
+  method: "curl_installer"  # or wget_installer, wget_sudo_installer
+  installer_url: "https://example.com/installer.sh"
+  output_lines: 20
+
+messages:
+  downloading_installer: "Downloading installer..."
+  update_success: "Update completed successfully!"
+```
+
+#### `prompt_update_confirmation(app_name)`
+
+Standardized update confirmation prompt.
+
+**Parameters:**
+
+- `app_name` (string): Application name
+
+**Returns:**
+
+- `0`: User confirmed (yes)
+- `1`: User declined (no)
+
+**Example:**
+
+```bash
+if ! prompt_update_confirmation "tmux"; then
+    print_status "Skipping tmux update"
+    return 0
+fi
+```
+
 ### Configuration Access Patterns
 
 ```bash
@@ -1162,6 +1468,7 @@ To migrate an existing hardcoded script:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2025-11-25 | Added `handle_installer_script_update()` function<br>Added installer script pattern (Method 2)<br>Added `prompt_update_confirmation()` function<br>Updated all examples to latest implementations<br>Added "Update Methods and Patterns" section<br>Simplified check_kitty_update.sh example (10 lines)<br>Updated update_tmux() to use handle_update_prompt |
 | 1.0.0 | 2025-11-24 | Initial documentation |
 
 ### D. Contributing
