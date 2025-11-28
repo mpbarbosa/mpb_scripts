@@ -28,7 +28,8 @@ maintain_dpkg_packages() {
     local package_count=$(grep -c "^Package:" "$dpkg_list" 2>/dev/null)
     print_status "Total DPKG packages tracked: $package_count"
     
-    local broken_count=$(dpkg -l | grep -c '^.H' 2>/dev/null || echo 0)
+    local broken_count=$(dpkg -l | grep -c '^.H' 2>/dev/null)
+    broken_count=${broken_count:-0}
     if [ "$broken_count" -gt 0 ]; then
         print_warning "Found $broken_count packages in broken state"
         print_status "Run: sudo apt-get install -f"

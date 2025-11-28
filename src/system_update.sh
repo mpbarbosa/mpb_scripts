@@ -37,18 +37,18 @@
 #   - Network connectivity for package updates
 #
 # Author: mpb
-# Repository: https://github.com/mpbarbosa/scripts
+# Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
 #
 
 #=============================================================================
 # SCRIPT VERSION AND METADATA
 #=============================================================================
-readonly SCRIPT_VERSION="0.4.0"
+readonly SCRIPT_VERSION="0.5.0"
 readonly SCRIPT_NAME="system_update.sh"
 readonly SCRIPT_DESCRIPTION="Comprehensive Package Management and System Update Script"
 readonly SCRIPT_AUTHOR="mpb"
-readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/scripts"
+readonly SCRIPT_REPOSITORY="https://github.com/mpbarbosa/mpb_scripts"
 
 #=============================================================================
 # DETERMINE SCRIPT DIRECTORY AND SOURCE LIBRARIES

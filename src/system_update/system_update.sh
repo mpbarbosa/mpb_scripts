@@ -44,7 +44,7 @@
 #=============================================================================
 # SCRIPT VERSION AND METADATA
 #=============================================================================
-readonly SCRIPT_VERSION="0.4.0"
+readonly SCRIPT_VERSION="0.5.0"
 readonly SCRIPT_NAME="system_update.sh"
 readonly SCRIPT_DESCRIPTION="Comprehensive Package Management and System Update Script"
 readonly SCRIPT_AUTHOR="mpb"
