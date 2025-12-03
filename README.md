@@ -7,9 +7,9 @@ Linux shell scripts for system automation and maintenance.
 ```
 mpb_scripts/
 ├── src/                      # Shell scripts
-│   ├── system_summary.sh     # System information summary and diagnostics
 │   ├── system_update.sh      # Wrapper script (launches system_update/system_update.sh)
 │   └── system_update/        # Modular system_update
+│       ├── system_summary.sh # System information summary and diagnostics
 │       ├── system_update.sh  # Main orchestrator script
 │       ├── lib/              # Core package manager modules
 │       │   ├── core_lib.sh
@@ -91,7 +91,7 @@ Options:
   -h, --help              Show help message
   -v, --version           Show version information
   -s, --simple            Simple mode (skip cleanup)
-  -f, --full              Full upgrade mode (includes system_summary.sh and dist-upgrade)
+  -f, --full              Full upgrade mode (includes system_update/system_summary.sh and dist-upgrade)
   -c, --cleanup           Cleanup only mode
   -l, --list              List all installed packages across all package managers
   --list-detailed         Show detailed package information
@@ -113,7 +113,7 @@ Options:
 
 See [src/system_update/README.md](src/system_update/README.md) for detailed modular architecture documentation.
 
-### system_summary.sh
+### system_update/system_summary.sh
 
 System information summary script that provides a comprehensive overview of system details.
 
@@ -129,7 +129,7 @@ System information summary script that provides a comprehensive overview of syst
 
 **Usage:**
 ```bash
-./src/system_summary.sh
+./src/system_update/system_summary.sh
 ```
 
 **Dependencies:**
@@ -166,7 +166,7 @@ chmod +x src/*.sh
 3. Run the scripts:
 ```bash
 ./src/system_update.sh
-./src/system_summary.sh
+./src/system_update/system_summary.sh
 ```
 
 ## Documentation
