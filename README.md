@@ -31,6 +31,10 @@ mpb_scripts/
 │       │   ├── vscode_insiders.yaml
 │       │   ├── update_github_copilot_cli.sh
 │       │   ├── github_copilot_cli.yaml
+│       │   ├── update_google_chrome.sh
+│       │   ├── google_chrome.yaml
+│       │   ├── update_postman.sh
+│       │   ├── postman.yaml
 │       │   ├── update_tmux.sh
 │       │   ├── tmux.yaml
 │       │   ├── update_bash.sh
@@ -45,6 +49,7 @@ mpb_scripts/
 │       │   ├── oh_my_bash.yaml
 │       │   ├── README_nodejs.md
 │       │   ├── README_nodejs_app.md
+│       │   ├── README_google_chrome.md
 │       │   ├── QUICK_REFERENCE.md
 │       │   └── examples/
 │       ├── README.md         # Modular architecture documentation
@@ -73,7 +78,7 @@ Comprehensive package management and system update script that automates package
 - Interactive and quiet modes
 - Intelligent handling of kept back packages
 - Comprehensive package listing and statistics
-- Optional application update checks (GitHub Copilot CLI, Calibre, Kitty, VS Code Insiders, Bash, Node.js, npm, Oh-My-Bash, tmux)
+- Optional application update checks (GitHub Copilot CLI, Google Chrome, Postman, Calibre, Kitty, VS Code Insiders, Bash, Node.js, npm, Oh-My-Bash, tmux)
 - Detailed error analysis and recovery suggestions
 - Progress tracking and user confirmation options
 - Modular architecture with high cohesion and loose coupling
@@ -191,9 +196,11 @@ All application-specific update scripts in `src/system_update/upgrade_snippets/`
 **Current Implementations:**
 - `update_github_copilot_cli.sh` - Method 1 (npm-based)
 - `update_npm.sh` - Method 1 (npm-based)
+- `update_google_chrome.sh` - Method 1 (apt-based)
 - `check_kitty_update.sh` - Method 2 (shell installer)
 - `check_calibre_update.sh` - Method 2 (shell installer)
 - `check_vscode_insiders_update.sh` - Method 2 (.deb package)
+- `update_postman.sh` - Method 3 (snap/tarball with auto-detection)
 - `update_tmux.sh` - Method 3 (build from source)
 - `update_bash.sh` - Method 3 (git-based source build)
 - `update_nodejs.sh` - Method 3 (multi-method: version managers, binaries, source)

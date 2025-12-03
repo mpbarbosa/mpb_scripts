@@ -5,13 +5,14 @@
 # Handles version checking and updates for oh-my-bash framework.
 # Reference: https://github.com/ohmybash/oh-my-bash
 #
-# Version: 1.0.0-alpha
-# Date: 2025-11-27
+# Version: 1.1.0-alpha
+# Date: 2025-11-29
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # Status: Non-production (Alpha)
 #
 # Version History:
+#   1.1.0-alpha (2025-11-29) - Added installation prompt when oh-my-bash not installed
 #   1.0.0-alpha (2025-11-27) - Aligned with upgrade script pattern v1.1.0
 #                            - Uses Method 3: Custom Update Logic
 #                            - Git commit-based versioning
@@ -42,6 +43,19 @@ check_oh_my_bash_installed() {
         local install_help
         install_help=$(get_config "messages.install_help")
         print_status "$install_help"
+        
+        # Ask if user wants to install oh-my-bash
+        if prompt_yes_no "Do you want to install oh-my-bash now?"; then
+            print_status "Installing oh-my-bash..."
+            if bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)"; then
+                print_success "oh-my-bash installed successfully!"
+                return 0
+            else
+                print_error "oh-my-bash installation failed"
+                return 1
+            fi
+        fi
+        
         return 1
     fi
     
@@ -97,7 +111,6 @@ get_remote_commit() {
     
     local checking_remote_msg
     checking_remote_msg=$(get_config "messages.checking_remote")
-    print_status "$checking_remote_msg"
     
     # Fetch latest from remote
     if ! (cd "$install_dir" && git fetch origin "$branch" 2>/dev/null); then
@@ -106,6 +119,8 @@ get_remote_commit() {
         print_error "$fetch_failed_msg"
         return 1
     fi
+    
+    print_status "$checking_remote_msg"
     
     local remote_commit
     remote_commit=$(cd "$install_dir" && git rev-parse --short "origin/$branch" 2>/dev/null)

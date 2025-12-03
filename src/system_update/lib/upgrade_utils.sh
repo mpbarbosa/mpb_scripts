@@ -5,10 +5,17 @@
 # Provides reusable functions for version checking and application updates
 # to avoid code duplication across upgrade snippet modules.
 #
-# Version: 1.0.0
+# Version: 1.1.0
+# Date: 2025-11-29
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
+#
+# Version History:
+#   1.1.0 (2025-11-29) - Added apt package manager support
+#                       - New function: get_apt_latest_version()
+#                       - Added "apt" case in config_driven_version_check()
+#   1.0.0 (2025-11-25) - Initial stable release
 #
 
 # Ensure core_lib.sh is loaded
@@ -101,6 +108,14 @@ config_driven_version_check() {
             npm_package=$(get_config "application.npm_package")
             LATEST_VERSION=$(get_npm_latest_version "$npm_package" --verbose="${VERBOSE_MODE:-false}")
             ;;
+        "apt")
+            local package_name
+            package_name=$(get_config "version.package_name")
+            if [ -z "$package_name" ]; then
+                package_name=$(get_config "application.name")
+            fi
+            LATEST_VERSION=$(get_apt_latest_version "$package_name" --verbose="${VERBOSE_MODE:-false}")
+            ;;
         *)
             print_error "Unknown version source: $version_source"
             return 1
@@ -166,6 +181,36 @@ get_npm_latest_version() {
     if [ -z "$version" ]; then
         print_error "Failed to get latest version from npm"
         ask_continue
+        return 1
+    fi
+    
+    if [ "$verbose" = "true" ]; then
+        print_status "Latest version for $package: $version"
+    fi
+    
+    echo "$version"
+}
+
+# Fetch latest version from apt repository
+# Usage: get_apt_latest_version "package-name"
+# Returns: version string (e.g., "141.0.7390.76-1")
+get_apt_latest_version() {
+    local package="$1"
+    local verbose="${2:-false}"
+    
+    if [ -z "$package" ]; then
+        echo ""
+        return 1
+    fi
+
+    if [ "$verbose" = "true" ]; then
+        print_status "Fetching apt latest version for package: $package"
+    fi
+    
+    local version
+    version=$(apt-cache policy "$package" 2>/dev/null | grep "Candidate:" | awk '{print $2}' | sed 's/-[0-9]*$//')
+    if [ -z "$version" ]; then
+        print_error "Failed to get latest version from apt"
         return 1
     fi
     

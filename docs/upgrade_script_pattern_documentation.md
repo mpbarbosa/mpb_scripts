@@ -1,9 +1,14 @@
 # Upgrade Script Pattern Documentation
 
-**Version:** 1.1.0  
-**Date:** 2025-11-25  
+**Version:** 1.2.0  
+**Date:** 2025-11-29  
 **Author:** mpb  
 **Repository:** https://github.com/mpbarbosa/mpb_scripts
+
+**Version History:**
+- **1.2.0** (2025-11-29) - Added apt package manager support for Debian/Ubuntu systems
+- **1.1.0** (2025-11-25) - Added installer script pattern and handle_installer_script_update()
+- **1.0.0** (2025-11-24) - Initial stable release
 
 ---
 
@@ -186,9 +191,10 @@ messages:
 version:
   command: "<version_command>"       # e.g., "app --version"
   regex: '<extraction_regex>'        # Capture group 1 = version
-  source: "github|npm"               # Version source
+  source: "github|npm|apt"           # Version source
   github_owner: "<owner>"            # If source=github
   github_repo: "<repo>"              # If source=github
+  package_name: "<package>"          # If source=apt (optional, defaults to application.name)
 
 # Update Commands (Optional - for simple updates)
 update:
@@ -299,6 +305,45 @@ build_instructions:
       command: "sudo make install"
   reference:
     url: "https://github.com/tmux/tmux"
+```
+
+#### Example 3: APT Package Manager (Debian/Ubuntu)
+
+```yaml
+# Version: 0.1.0-alpha
+# Date: 2025-11-29
+# Author: mpb
+# Status: Non-production (Alpha)
+
+application:
+  name: "google-chrome-stable"
+  command: "google-chrome-stable"
+  display_name: "Google Chrome"
+
+dependencies:
+  - name: "wget"
+    command: "wget"
+    help: "Install wget: sudo apt-get install -y wget"
+    required: true
+
+messages:
+  checking_updates: "Checking Google Chrome updates..."
+  install_help: |
+    Install Google Chrome via apt repository
+    Reference: https://support.google.com/chrome/a/answer/9025903
+  failed_version: "Failed to get current Google Chrome version"
+  update_success: "Google Chrome updated successfully"
+
+version:
+  command: "google-chrome-stable --version"
+  regex: 'Google Chrome ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)'
+  source: "apt"
+  package_name: "google-chrome-stable"
+
+update:
+  method: "apt"
+  update_command: "sudo apt-get update && sudo apt-get install --only-upgrade -y google-chrome-stable"
+  output_lines: 15
 ```
 
 ---
@@ -832,7 +877,7 @@ messages:
 version:
   command: "myapp --version"
   regex: '.*([0-9]+\.[0-9]+\.[0-9]+).*'
-  source: "github"  # or "npm"
+  source: "github"  # or "npm" or "apt"
   github_owner: "<owner>"
   github_repo: "<repo>"
 

@@ -337,7 +337,6 @@ update_nodejs() {
         return 1
     fi
     
-    ask_continue
     return 0
 }
 

@@ -23,7 +23,7 @@
 # Options:
 #   -q, --quiet       Run in quiet mode (no user prompts)
 #   -s, --simple      Simple mode (skip cleanup)
-#   -f, --full        Full mode (run system_summary.sh first + dist-upgrade)
+#   -f, --full        Full mode (run src/system_update/system_summary.sh first + dist-upgrade)
 #   -c, --cleanup     Cleanup only mode
 #   -l, --list        List all installed packages
 #   --list-detailed   List all packages with detailed information
@@ -108,7 +108,7 @@ package managers including APT, Pacman, Snap, Cargo, pip, and npm.
 Options:
     -q, --quiet         Run in quiet mode (no user prompts)
     -s, --simple        Simple mode (skip cleanup operations)
-    -f, --full          Full mode (run system_summary.sh + dist-upgrade)
+    -f, --full          Full mode (run system_summary.sh from same directory + dist-upgrade)
     -c, --cleanup       Cleanup only mode (just run cleanup operations)
     -l, --list          List all installed packages
     --list-detailed     List all packages with detailed information
@@ -264,14 +264,14 @@ fi
 # Execute system_summary.sh if full mode is enabled
 if [ "$FULL_MODE" = true ]; then
     print_status "Full mode enabled - executing system_summary.sh first..."
-    if [ -f "$SCRIPT_DIR/../system_summary.sh" ]; then
-        if bash "$SCRIPT_DIR/../system_summary.sh"; then
+    if [ -f "$SCRIPT_DIR/system_summary.sh" ]; then
+        if bash "$SCRIPT_DIR/system_summary.sh"; then
             true
         else
             print_warning "system_summary.sh execution failed, continuing with operations..."
         fi
     else
-        print_warning "system_summary.sh not found in parent directory, skipping..."
+        print_warning "system_summary.sh not found in same directory, skipping..."
     fi
     ask_continue
 fi

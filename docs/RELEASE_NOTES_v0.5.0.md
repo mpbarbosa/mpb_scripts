@@ -15,6 +15,7 @@ This release significantly expands the upgrade scripts collection with comprehen
 ### 🟢 Node.js Ecosystem Support
 
 #### `update_nodejs.sh` - Node.js Runtime Manager
+
 **Version:** 1.0.0-alpha
 
 A sophisticated Node.js runtime update manager supporting multiple installation methods:
@@ -25,6 +26,7 @@ A sophisticated Node.js runtime update manager supporting multiple installation 
 - **Package Manager**: System package manager fallback (apt, dnf, pacman)
 
 **Key Features:**
+
 - Multi-architecture support (x64, arm64, armv7l)
 - Intelligent version manager detection
 - GitHub API version checking
@@ -36,6 +38,7 @@ A sophisticated Node.js runtime update manager supporting multiple installation 
 ---
 
 #### `update_nodejs_app.sh` - Node.js Application Updater
+
 **Version:** 1.0.0-alpha
 
 Generic template for updating any Node.js application from source code:
@@ -47,11 +50,13 @@ Generic template for updating any Node.js application from source code:
 - Version tracking from package.json or git tags
 
 **Supported Frameworks:**
+
 - Express.js
 - Next.js
 - Any Node.js application with package.json
 
 **Configuration Examples:**
+
 - Express API: [`nodejs_app_express_example.yaml`](src/system_update/upgrade_snippets/examples/nodejs_app_express_example.yaml)
 - Next.js App: [`nodejs_app_nextjs_example.yaml`](src/system_update/upgrade_snippets/examples/nodejs_app_nextjs_example.yaml)
 
@@ -60,6 +65,7 @@ Generic template for updating any Node.js application from source code:
 ---
 
 #### `update_npm.sh` - npm Package Manager Updater
+
 **Version:** 1.0.0-alpha
 
 Simple and efficient npm version updater using the direct command pattern:
@@ -73,6 +79,7 @@ Simple and efficient npm version updater using the direct command pattern:
 ### 🐚 Shell Environment Support
 
 #### `update_bash.sh` - Bash Shell Updater
+
 **Version:** 1.1.0-alpha
 
 Professional Bash shell update manager with source build capabilities:
@@ -84,6 +91,7 @@ Professional Bash shell update manager with source build capabilities:
 - **Package manager fallback**: Attempts system package manager first
 
 **Build Process:**
+
 1. Clones from `git://git.savannah.gnu.org/bash.git`
 2. Runs autoconf to generate configure script
 3. Configures with `--prefix=/usr/local`
@@ -94,6 +102,7 @@ Professional Bash shell update manager with source build capabilities:
 ---
 
 #### `update_oh_my_bash.sh` - Oh-My-Bash Framework Updater
+
 **Version:** 1.0.0-alpha
 
 Oh-My-Bash framework updater with Git commit-based version tracking:
@@ -141,18 +150,21 @@ Added 4 example configurations in `examples/`:
 ## 🔧 Improvements
 
 ### Enhanced Error Handling
+
 - **`dpkg_manager.sh`**: Improved broken package count handling
   - Fixed potential command substitution errors
   - Added fallback value assignment
   - More robust error detection
 
 ### Updated Documentation
+
 - **`README.md`**: Complete upgrade snippets listing
   - Added all 5 new scripts
   - Updated feature list
   - Expanded implementation examples
 
 ### Version Management
+
 - **`system_update.sh`**: Version bumped to 0.5.0
 - **Repository references**: All URLs updated to `mpb_scripts`
 
@@ -175,12 +187,14 @@ All new scripts include corresponding YAML configuration files:
 ## 📊 Statistics
 
 ### Code Metrics
+
 - **Files Changed:** 22
 - **Insertions:** 2,980 lines
 - **Deletions:** 7 lines
 - **Net Addition:** 2,973 lines
 
 ### Script Breakdown
+
 | Script | Lines | Method | Status |
 |--------|-------|--------|--------|
 | `update_bash.sh` | 357 | Method 3 | Alpha |
@@ -198,6 +212,7 @@ All new scripts include corresponding YAML configuration files:
 All scripts follow the **Upgrade Script Pattern v1.1.0**:
 
 ### Design Principles
+
 - ✅ **Config-Driven**: All configuration externalized to YAML
 - ✅ **Reusable Libraries**: Common functions in `upgrade_utils.sh`
 - ✅ **Consistent Structure**: Uniform version headers and error handling
@@ -206,10 +221,12 @@ All scripts follow the **Upgrade Script Pattern v1.1.0**:
 
 ### Implementation Methods Used
 
-**Method 1: Direct Command Update**
+#### Method 1: Direct Command Update
+
 - `update_npm.sh` - Simple npm command execution
 
-**Method 3: Custom Update Logic**
+#### Method 3: Custom Update Logic
+
 - `update_bash.sh` - Git-based source builds
 - `update_nodejs.sh` - Multi-method selection (nvm/binary/source)
 - `update_nodejs_app.sh` - Git pull + npm workflow
@@ -222,6 +239,7 @@ All scripts follow the **Upgrade Script Pattern v1.1.0**:
 After this release, the repository includes **10 upgrade scripts**:
 
 ### Package Managers
+
 - ✅ `snap_manager.sh`
 - ✅ `cargo_manager.sh`
 - ✅ `pip_manager.sh`
@@ -229,6 +247,7 @@ After this release, the repository includes **10 upgrade scripts**:
 - ✅ **`update_npm.sh`** (new)
 
 ### Applications
+
 - ✅ `check_calibre_update.sh`
 - ✅ `check_kitty_update.sh`
 - ✅ `check_vscode_insiders_update.sh`
@@ -237,6 +256,7 @@ After this release, the repository includes **10 upgrade scripts**:
 - ✅ **`update_nodejs_app.sh`** (new - template)
 
 ### Development Tools & Shells
+
 - ✅ **`update_bash.sh`** (new)
 - ✅ **`update_nodejs.sh`** (new)
 - ✅ **`update_oh_my_bash.sh`** (new)
@@ -262,6 +282,7 @@ chmod +x src/system_update/upgrade_snippets/*.sh
 ### Using Individual Scripts
 
 #### Update Node.js Runtime
+
 ```bash
 ./src/system_update/upgrade_snippets/update_nodejs.sh
 
@@ -273,6 +294,7 @@ chmod +x src/system_update/upgrade_snippets/*.sh
 ```
 
 #### Update Node.js Application
+
 ```bash
 # 1. Configure your app in nodejs_app.yaml
 # 2. Run updater
@@ -280,6 +302,7 @@ chmod +x src/system_update/upgrade_snippets/*.sh
 ```
 
 #### Update Bash Shell
+
 ```bash
 ./src/system_update/upgrade_snippets/update_bash.sh
 
@@ -301,20 +324,24 @@ chmod +x src/system_update/upgrade_snippets/*.sh
 ## 🔍 Dependencies
 
 ### Required
+
 - Bash shell
 - Standard Linux utilities
 
 ### Optional (Based on Scripts Used)
 
 **For Node.js Scripts:**
+
 - git (for source builds and app updates)
 - npm (bundled with Node.js)
 - Node.js v18+ (for applications)
 
 **For Bash Update:**
+
 - git, autoconf, bison, gcc/clang, make, libncurses-dev
 
 **For Oh-My-Bash:**
+
 - git
 
 ---
@@ -322,18 +349,24 @@ chmod +x src/system_update/upgrade_snippets/*.sh
 ## ⚠️ Important Notes
 
 ### Alpha Status
+
 All new scripts are marked as **alpha** (non-production):
+
 - Thoroughly tested but not production-ready
 - Configuration may change
 - Feedback and contributions welcome
 
 ### Version Managers
+
 If using Node.js version managers (nvm, n, fnm):
+
 - Ensure they're properly installed before running `update_nodejs.sh`
 - Scripts will auto-detect and offer appropriate options
 
 ### Source Builds
+
 Building from source requires:
+
 - Significant disk space (~2GB for Node.js)
 - Time commitment (20-60 minutes for Node.js)
 - Build dependencies installed
@@ -351,6 +384,7 @@ Building from source requires:
 ## 🔜 Future Enhancements
 
 Potential features for upcoming releases:
+
 - Python version manager support (pyenv)
 - Ruby version manager support (rbenv, rvm)
 - Go version manager support
@@ -367,11 +401,13 @@ Potential features for upcoming releases:
 **Breaking Changes:** None
 
 **New Features:**
+
 - 5 new upgrade scripts
 - Expanded documentation
 - Configuration examples
 
 **Action Required:**
+
 ```bash
 git pull origin main
 git checkout v0.5.0
@@ -417,6 +453,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 📞 Support
 
 For issues, questions, or suggestions:
+
 - **Issues:** [GitHub Issues](https://github.com/mpbarbosa/mpb_scripts/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/mpbarbosa/mpb_scripts/discussions)
 

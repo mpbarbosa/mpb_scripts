@@ -5,7 +5,7 @@
 # Handles all APT/DPKG package operations including updates, upgrades,
 # dependency management, and cleanup operations.
 #
-# Version: 0.4.1
+# Version: 0.4.2
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -52,7 +52,99 @@ update_package_list() {
         if echo "$apt_output" | grep -qi "does not have a Release file\|404.*Not Found\|Failed to fetch"; then
             print_warning "🌐 Some repositories failed to update"
             print_status "🔍 Repository issues detected - continuing with available repositories"
-            print_status "💡 You may want to review repository configuration later"
+            
+            # Check specifically for 404 errors and identify broken registries
+            if echo "$apt_output" | grep -qi "404.*Not Found"; then
+                print_status ""
+                print_warning "🔴 404 Not Found errors detected in repository updates"
+                
+                # Extract broken repository patterns (URL + 2 words) from apt output
+                # The repository URL is on the line immediately above the 404 error
+                # Format: Err:N http://url/path word1 word2
+                local broken_repos
+                broken_repos=$(echo "$apt_output" | awk '
+                    /404.*Not Found/ {
+                        if (prev ~ /^Err:[0-9]+ https?:\/\//) {
+                            # Extract URL and the two following words
+                            match(prev, /https?:\/\/[^ ]+ +[^ ]+ +[^ ]+/)
+                            pattern = substr(prev, RSTART, RLENGTH)
+                            print pattern
+                        }
+                    }
+                    {prev = $0}
+                ' | sort -u)
+                
+                if [ -n "$broken_repos" ]; then
+                    print_status "📋 Broken repositories identified:"
+                    echo "$broken_repos" | while IFS= read -r repo_pattern; do
+                        if [ -n "$repo_pattern" ]; then
+                            print_status "   • $repo_pattern"
+                        fi
+                    done
+                    
+                    # Ask user if they want to fix the broken repositories
+                    if [[ "${QUIET_MODE:-false}" == "false" ]]; then
+                        echo ""
+                        print_status "💡 These repositories may need to be removed or updated"
+                        read -p "$(echo -e "${MAGENTA}Would you like to disable/comment out these broken repositories? (y/N):${NC} ")" -n 1 -r
+                        echo ""
+                        
+                        if [[ $REPLY =~ ^[Yy]$ ]]; then
+                            print_operation_header "🔧 Fixing broken repositories..."
+                            
+                            # Find and comment out broken repository entries
+                            local sources_list_modified=false
+                            echo "$broken_repos" | while IFS= read -r repo_pattern; do
+                                if [ -n "$repo_pattern" ]; then
+                                    # Escape special characters for sed
+                                    local escaped_pattern=$(echo "$repo_pattern" | sed 's/[\/&]/\\&/g')
+                                    
+                                    # Search in /etc/apt/sources.list
+                                    if grep -qF "$repo_pattern" /etc/apt/sources.list 2>/dev/null; then
+                                        print_status "📝 Commenting out entries in /etc/apt/sources.list for: $repo_pattern"
+                                        sudo sed -i.bak "/^[^#].*${escaped_pattern}/s/^/# [DISABLED - 404 Error] /" /etc/apt/sources.list
+                                        sources_list_modified=true
+                                    fi
+                                    
+                                    # Search in /etc/apt/sources.list.d/*.list files
+                                    if [ -d /etc/apt/sources.list.d ]; then
+                                        for sources_file in /etc/apt/sources.list.d/*.list; do
+                                            if [ -f "$sources_file" ] && grep -qF "$repo_pattern" "$sources_file" 2>/dev/null; then
+                                                print_status "📝 Commenting out entries in $sources_file for: $repo_pattern"
+                                                sudo sed -i.bak "/^[^#].*${escaped_pattern}/s/^/# [DISABLED - 404 Error] /" "$sources_file"
+                                                sources_list_modified=true
+                                            fi
+                                        done
+                                    fi
+                                fi
+                            done
+                            
+                            if [ "$sources_list_modified" = true ]; then
+                                print_success "✅ Broken repositories have been disabled"
+                                print_status "💾 Backup files created with .bak extension"
+                                print_status "🔄 Re-running apt-get update..."
+                                echo ""
+                                apt_output=$(sudo apt-get update 2>&1)
+                                exit_code=$?
+                                
+                                if [ $exit_code -eq 0 ]; then
+                                    print_success "📋 Package list updated successfully after fixing repositories"
+                                else
+                                    print_warning "⚠️  Some issues may still remain - please review manually"
+                                fi
+                            else
+                                print_warning "No matching repository entries found to disable"
+                            fi
+                        else
+                            print_status "💡 You may want to review repository configuration later"
+                        fi
+                    else
+                        print_status "💡 Run in interactive mode to fix broken repositories"
+                    fi
+                fi
+            else
+                print_status "💡 You may want to review repository configuration later"
+            fi
         else
             print_error "🌐 Critical failure updating package list"
             print_error "🔍 Common causes: network connectivity, repository issues, GPG key problems"
