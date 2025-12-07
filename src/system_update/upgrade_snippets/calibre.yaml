@@ -33,7 +33,7 @@ messages:
 # Version extraction
 version:
   command: "calibre --version"
-  regex: '([0-9]+\.[0-9]+(\.[0-9]+)?)'
+  regex: '.*calibre ([0-9]+\.[0-9]+(\.[0-9]+)?).*'
   source: "github"
   github_owner: "kovidgoyal"
   github_repo: "calibre"

@@ -7,22 +7,6 @@
 #
 # Reference: https://learning.postman.com/docs/getting-started/installation/installation-and-updates/
 #
-# Version: 0.2.0-alpha
-# Date: 2025-11-29
-# Author: mpb
-# Repository: https://github.com/mpbarbosa/mpb_scripts
-# Status: Non-production (Alpha)
-#
-# Version History:
-#   0.2.0-alpha (2025-11-29) - Updated to support both snap and tarball installations
-#                            - Follows upgrade script pattern v1.2.0
-#                            - Fixed VERBOSE variable typo
-#                            - Not ready for production use
-#
-# Dependencies:
-#   - wget (for tarball download)
-#   - snap (optional, for snap-based installation)
-#
 
 # Load upgrade utilities library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,7 +19,7 @@ check_postman_version() {
     print_operation_header "Checking Postman updates..."
     
     # Check if Postman is installed
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_status "Verifying Postman installation..."
     fi
     if ! command -v postman &>/dev/null; then
@@ -46,21 +30,21 @@ check_postman_version() {
         ask_continue
         return 1
     fi
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_success "Postman installation detected"
     fi
     
     # Detect installation method first
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_status "Detecting installation method..."
     fi
     local install_method
     install_method=$(detect_install_method)
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_success "Installation method: $install_method"
     fi
     
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_status "Retrieving version information..."
     fi
     if [[ "$install_method" == "snap" ]]; then
@@ -72,7 +56,7 @@ check_postman_version() {
             incompatible_msg=$(get_config "messages.snap_incompatible")
             echo -e "$incompatible_msg"
             echo ""
-            if ${VERBOSE_MODE:-false}; then
+            if $VEBOSE; then
                 print_status "Offering migration to tarball installation..."
             fi
             # Offer to migrate automatically
@@ -80,16 +64,16 @@ check_postman_version() {
                 migrate_snap_to_tarball
                 return $?
             else
-                if ${VERBOSE_MODE:-false}; then
+                print_status "Manual migration required. Run 'sudo snap remove postman' then run this script again."
+                if $VEBOSE; then
                     print_status "Manual migration required. Run 'sudo snap remove postman' then run this script again."
                 fi
-                print_status "Manual migration required. Run 'sudo snap remove postman' then run this script again."
                 ask_continue
                 return 1
             fi
         fi
         
-        if ${VERBOSE_MODE:-false}; then
+        if $VEBOSE; then
             print_success "Snap version is compatible"
         fi
         # Get current version from snap
@@ -119,7 +103,7 @@ check_postman_version() {
         
         # Get latest from download page (always latest)
         LATEST_VERSION="latest"
-        if ${VERBOSE_MODE:-false}; then
+        if $VEBOSE; then
             print_success "Latest version is always 'latest' for tarball installations"
         fi
     else
@@ -129,14 +113,14 @@ check_postman_version() {
     fi
     
     # Compare versions
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_success "Retrieved version information"
     fi
     print_status "Current version: $CURRENT_VERSION"
     print_status "Latest version: $LATEST_VERSION"
     
     if [[ "$LATEST_VERSION" == "latest" ]] || [[ "$CURRENT_VERSION" == "unknown" ]]; then
-        if ${VERBOSE_MODE:-false}; then
+        if $VEBOSE; then
             print_status "Assuming update is available for tarball installation"
         fi
         VERSION_STATUS=2
@@ -152,7 +136,7 @@ check_postman_version() {
 
 # Check if snap version is compatible with the system
 check_snap_compatibility() {
-    if ${VERBOSE_MODE:-false}; then
+    if $VEBOSE; then
         print_status "Checking snap compatibility..."
     fi
     # Try to get version info - if it fails with library error, it's incompatible

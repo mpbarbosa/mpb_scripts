@@ -1,4 +1,4 @@
-t # System Update Architecture Diagram
+# System Update Architecture Diagram
 
 ## High-Level Architecture
 

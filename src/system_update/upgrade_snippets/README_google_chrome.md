@@ -99,7 +99,7 @@ version:
 
 ## Architecture
 
-This script follows the **Upgrade Script Pattern v1.2.0**:
+This script follows the **Upgrade Script Pattern v1.1.0**:
 
 - **Config-Driven**: All strings and commands in YAML
 - **Reusable Libraries**: Uses `upgrade_utils.sh` for common functions
@@ -165,7 +165,7 @@ ls -la /usr/share/keyrings/google-chrome.gpg
 - Supports apt-based installation
 - Auto-configures Chrome repository
 - Handles both fresh install and updates
-- Follows upgrade script pattern v1.2.0
+- Follows upgrade script pattern v1.1.0
 
 ## Status
 

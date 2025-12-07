@@ -5,7 +5,7 @@
 # Handles all APT/DPKG package operations including updates, upgrades,
 # dependency management, and cleanup operations.
 #
-# Version: 0.4.2
+# Version: 0.4.3
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -58,15 +58,19 @@ update_package_list() {
                 print_status ""
                 print_warning "🔴 404 Not Found errors detected in repository updates"
                 
-                # Extract broken repository patterns (URL + 2 words) from apt output
-                # The repository URL is on the line immediately above the 404 error
-                # Format: Err:N http://url/path word1 word2
+                # Extract broken repository URLs from apt update output
+                # Parse apt-get update errors to identify repositories returning 404
+                # Example input format: "Err:8 https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu plucky Release"
+                #                       "  404  Not Found [IP: 185.125.190.80 443]"
+                # We extract only the base URL to match against repository configuration files
                 local broken_repos
                 broken_repos=$(echo "$apt_output" | awk '
                     /404.*Not Found/ {
+                        # Check if previous line contains an error entry with URL
                         if (prev ~ /^Err:[0-9]+ https?:\/\//) {
-                            # Extract URL and the two following words
-                            match(prev, /https?:\/\/[^ ]+ +[^ ]+ +[^ ]+/)
+                            # Extract only the URL portion (up to first space after URL)
+                            # This ensures compatibility with both .list and .sources file formats
+                            match(prev, /https?:\/\/[^ ]+/)
                             pattern = substr(prev, RSTART, RLENGTH)
                             print pattern
                         }
@@ -86,6 +90,7 @@ update_package_list() {
                     if [[ "${QUIET_MODE:-false}" == "false" ]]; then
                         echo ""
                         print_status "💡 These repositories may need to be removed or updated"
+                        # Prompt user for action. REPLY variable will hold the response.
                         read -p "$(echo -e "${MAGENTA}Would you like to disable/comment out these broken repositories? (y/N):${NC} ")" -n 1 -r
                         echo ""
                         
@@ -94,11 +99,25 @@ update_package_list() {
                             
                             # Find and comment out broken repository entries
                             local sources_list_modified=false
-                            echo "$broken_repos" | while IFS= read -r repo_pattern; do
+                            if $VERBOSE_MODE; then
+                                print_status "Searching for broken repository entries in APT sources..."
+                                print_status "Broken repository patterns to disable:"
+                                echo "$broken_repos"
+                            fi
+                            
+                            # Use process substitution to avoid subshell and preserve variable modifications
+                            while IFS= read -r repo_pattern; do
+                                if $VERBOSE_MODE; then
+                                    print_status "Processing pattern: $repo_pattern"
+                                fi
                                 if [ -n "$repo_pattern" ]; then
                                     # Escape special characters for sed
-                                    local escaped_pattern=$(echo "$repo_pattern" | sed 's/[\/&]/\\&/g')
+                                    local escaped_pattern
+                                    escaped_pattern=$(echo "$repo_pattern" | sed 's/[\/&]/\\&/g')
                                     
+                                    if $VERBOSE_MODE; then
+                                        print_status "Escaped pattern for sed: $escaped_pattern"
+                                    fi
                                     # Search in /etc/apt/sources.list
                                     if grep -qF "$repo_pattern" /etc/apt/sources.list 2>/dev/null; then
                                         print_status "📝 Commenting out entries in /etc/apt/sources.list for: $repo_pattern"
@@ -106,18 +125,31 @@ update_package_list() {
                                         sources_list_modified=true
                                     fi
                                     
-                                    # Search in /etc/apt/sources.list.d/*.list files
+                                    # Process traditional one-line-per-entry format (.list files)
                                     if [ -d /etc/apt/sources.list.d ]; then
                                         for sources_file in /etc/apt/sources.list.d/*.list; do
                                             if [ -f "$sources_file" ] && grep -qF "$repo_pattern" "$sources_file" 2>/dev/null; then
                                                 print_status "📝 Commenting out entries in $sources_file for: $repo_pattern"
+                                                # Comment out matching lines and create backup
                                                 sudo sed -i.bak "/^[^#].*${escaped_pattern}/s/^/# [DISABLED - 404 Error] /" "$sources_file"
+                                                sources_list_modified=true
+                                            fi
+                                        done
+                                        
+                                        # Process DEB822 format (.sources files)
+                                        # These files use structured format and don't support inline comments
+                                        # Solution: rename entire file to .disabled extension
+                                        for sources_file in /etc/apt/sources.list.d/*.sources; do
+                                            if [ -f "$sources_file" ] && grep -qF "$repo_pattern" "$sources_file" 2>/dev/null; then
+                                                print_status "📝 Disabling $sources_file (contains: $repo_pattern)"
+                                                # Rename file to disable it (DEB822 format doesn't support commenting)
+                                                sudo mv "$sources_file" "${sources_file}.disabled"
                                                 sources_list_modified=true
                                             fi
                                         done
                                     fi
                                 fi
-                            done
+                            done < <(echo "$broken_repos")
                             
                             if [ "$sources_list_modified" = true ]; then
                                 print_success "✅ Broken repositories have been disabled"

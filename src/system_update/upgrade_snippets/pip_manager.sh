@@ -4,7 +4,7 @@
 #
 # Handles Python package updates via pip.
 #
-# Version: 0.4.2
+# Version: 0.5.0
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -25,24 +25,16 @@ update_pip_packages() {
     print_operation_header "Updating Python pip packages..."
     print_status "Checking for outdated packages..."
     
-    # List of system packages to exclude (managed by apt, not pip)
-    local exclude_packages="dbus-python|PyGObject|distro-info|python-apt"
-    
-    local outdated=$(pip3 list --outdated 2>/dev/null | tail -n +3)
+    # Check only user-installed packages (--user flag)
+    # This avoids conflicts with system packages managed by apt
+    local outdated=$(pip3 list --outdated --user 2>/dev/null | tail -n +3)
     if [ -z "$outdated" ]; then
-        print_success "All pip packages are up to date"
+        print_success "All user pip packages are up to date"
     else
-        # Filter out system packages
-        local user_packages=$(echo "$outdated" | grep -vE "^($exclude_packages) " || true)
+        print_status "Found outdated user packages:"
+        echo "$outdated" | head -10
         
-        if [ -z "$user_packages" ]; then
-            print_success "All user pip packages are up to date"
-            print_status "💡 System packages (managed by apt) are excluded from pip updates"
-        else
-            print_status "Found outdated user packages:"
-            echo "$user_packages" | head -10
-            
-            if [ "$QUIET_MODE" = false ]; then
+        if [ "$QUIET_MODE" = false ]; then
                 echo -n -e "${MAGENTA}❓ [PROMPT]${NC} Update all outdated pip packages? (y/N): "
                 read -r response
                 case "$response" in
@@ -51,9 +43,11 @@ update_pip_packages() {
                         
                         local success_count=0
                         local fail_count=0
-                        local total_packages=$(echo "$user_packages" | wc -l)
+                        local total_packages=$(echo "$outdated" | wc -l)
+                        local failed_packages=""
                         
-                        echo "$user_packages" | awk '{print $1}' | while read -r package; do
+                        # Use process substitution to preserve variables in parent shell
+                        while read -r package; do
                             if [ -n "$package" ]; then
                                 print_status "📦 Updating $package..."
                                 if pip3 install -U "$package" --user 2>&1 | grep -q "Successfully installed\|Requirement already satisfied"; then
@@ -61,10 +55,41 @@ update_pip_packages() {
                                     print_success "✅ $package updated successfully"
                                 else
                                     fail_count=$((fail_count + 1))
+                                    failed_packages="${failed_packages}${package} "
                                     print_warning "⚠️  Failed to update $package (skipping)"
                                 fi
                             fi
-                        done
+                        done < <(echo "$outdated" | awk '{print $1}')
+                        
+                        echo ""
+                        print_status "📊 Update Summary: $success_count succeeded, $fail_count failed out of $total_packages packages"
+                        
+                        # Verify installed packages are properly installed
+                        if [ $success_count -gt 0 ]; then
+                            print_status "🔍 Verifying installed packages..."
+                            local verification_failed=0
+                            
+                            while read -r package; do
+                                if [ -n "$package" ]; then
+                                    # Skip packages that failed to install
+                                    if echo "$failed_packages" | grep -qw "$package"; then
+                                        continue
+                                    fi
+                                    
+                                    # Check if package can be imported or shown
+                                    if ! pip3 show "$package" &>/dev/null; then
+                                        print_warning "⚠️  Package $package is not properly installed"
+                                        verification_failed=$((verification_failed + 1))
+                                    fi
+                                fi
+                            done < <(echo "$user_packages" | awk '{print $1}')
+                            
+                            if [ $verification_failed -eq 0 ]; then
+                                print_success "✅ All updated packages verified successfully"
+                            else
+                                print_warning "⚠️  $verification_failed package(s) failed verification"
+                            fi
+                        fi
                         
                         echo ""
                         if [ $fail_count -eq 0 ]; then
@@ -81,7 +106,6 @@ update_pip_packages() {
             else
                 print_status "Quiet mode - skipping interactive pip updates"
             fi
-        fi
     fi
     
     ask_continue

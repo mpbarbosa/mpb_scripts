@@ -47,6 +47,8 @@ mpb_scripts/
 │       │   ├── npm.yaml
 │       │   ├── update_oh_my_bash.sh
 │       │   ├── oh_my_bash.yaml
+│       │   ├── update_awscli.sh
+│       │   ├── awscli.yaml
 │       │   ├── README_nodejs.md
 │       │   ├── README_nodejs_app.md
 │       │   ├── README_google_chrome.md
@@ -78,7 +80,7 @@ Comprehensive package management and system update script that automates package
 - Interactive and quiet modes
 - Intelligent handling of kept back packages
 - Comprehensive package listing and statistics
-- Optional application update checks (GitHub Copilot CLI, Google Chrome, Postman, Calibre, Kitty, VS Code Insiders, Bash, Node.js, npm, Oh-My-Bash, tmux)
+- Optional application update checks (GitHub Copilot CLI, Google Chrome, Postman, Calibre, Kitty, VS Code Insiders, Bash, Node.js, npm, Oh-My-Bash, tmux, AWS CLI)
 - Detailed error analysis and recovery suggestions
 - Progress tracking and user confirmation options
 - Modular architecture with high cohesion and loose coupling
@@ -148,6 +150,7 @@ System information summary script that provides a comprehensive overview of syst
 - cargo (Rust package manager)
 - pip3 (Python package manager)
 - npm (Node.js package manager)
+- curl and unzip (for AWS CLI updates)
 - sudo privileges (for system_update.sh)
 
 ## Installation
@@ -197,6 +200,7 @@ All application-specific update scripts in `src/system_update/upgrade_snippets/`
 - `update_github_copilot_cli.sh` - Method 1 (npm-based)
 - `update_npm.sh` - Method 1 (npm-based)
 - `update_google_chrome.sh` - Method 1 (apt-based)
+- `update_awscli.sh` - Method 1 (custom installer)
 - `check_kitty_update.sh` - Method 2 (shell installer)
 - `check_calibre_update.sh` - Method 2 (shell installer)
 - `check_vscode_insiders_update.sh` - Method 2 (.deb package)

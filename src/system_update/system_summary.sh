@@ -80,9 +80,9 @@ print_operation_header "💾 Storage and File System Information"
 
 # Create formatted table output following interface documentation standards
 echo -e "\n┌─────────────────────────────────────────────────────────────────────────────┐"
-echo -e "│                           DISK USAGE SUMMARY                               │"
+echo -e "│                           DISK USAGE SUMMARY                                  │"
 echo -e "├─────────────────────────────────────────────────────────────────────────────┤"
-df -h -T | grep -E '^(/dev/|Filesystem)' | while read line; do
+df -h -T | grep -E '^(/dev/|Filesystem)' | while read -r line; do
     echo -e "│ $line" | awk '{printf "%-75s", $0}' && echo " │"
 done
 echo -e "└─────────────────────────────────────────────────────────────────────────────┘"
@@ -117,6 +117,9 @@ else
         echo -e "${YELLOW}⚠️  [WARNING]${NC} Could not detect wireless network interface"
     fi
     
+    # Continuation prompt to avoid scrolling
+    echo -e "\n${CYAN}Press any key to continue...${NC}"
+    read -r -n 1 -s
 
     
     print_operation_header "📦 Package Management System"
@@ -243,9 +246,6 @@ else
     }
     echo -e "${GREEN}✅${NC} Package manager analysis completed"
     
-    # Continuation prompt to avoid scrolling
-    echo -e "\n${CYAN}Press any key to continue...${NC}"
-    read -n 1 -s
     
     print_operation_header "⏰ System Runtime and Performance"
     uptime_info=$(uptime)

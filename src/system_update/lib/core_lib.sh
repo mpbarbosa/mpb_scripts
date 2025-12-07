@@ -5,7 +5,7 @@
 # Provides color definitions, formatted output functions, and common utilities
 # used across all package manager modules.
 #
-# Version: 0.4.0
+# Version: 0.5.0
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
 # License: MIT
@@ -109,20 +109,55 @@ compare_versions() {
         return 0
     fi
     
+    # Use dpkg --compare-versions if available for better version comparison
+    if command -v dpkg &>/dev/null; then
+        if dpkg --compare-versions "$version1" eq "$version2" 2>/dev/null; then
+            return 0
+        elif dpkg --compare-versions "$version1" gt "$version2" 2>/dev/null; then
+            return 1
+        elif dpkg --compare-versions "$version1" lt "$version2" 2>/dev/null; then
+            return 2
+        fi
+    fi
+    
+    # Fallback to custom comparison
     local IFS=.
     local i ver1=($version1) ver2=($version2)
     
     for ((i=0; i<${#ver1[@]} || i<${#ver2[@]}; i++)); do
-        local num1=${ver1[i]:-0}
-        local num2=${ver2[i]:-0}
+        local part1=${ver1[i]:-0}
+        local part2=${ver2[i]:-0}
         
-        num1=$(echo "$num1" | sed 's/[^0-9]//g')
-        num2=$(echo "$num2" | sed 's/[^0-9]//g')
+        # Extract numeric and alphabetic parts separately
+        local num1=$(echo "$part1" | sed 's/[^0-9].*$//')
+        local num2=$(echo "$part2" | sed 's/[^0-9].*$//')
+        local alpha1=$(echo "$part1" | sed 's/^[0-9]*//')
+        local alpha2=$(echo "$part2" | sed 's/^[0-9]*//')
         
+        # Default to 0 if empty
+        num1=${num1:-0}
+        num2=${num2:-0}
+        
+        # Compare numeric parts
         if ((10#$num1 > 10#$num2)); then
             return 1
         elif ((10#$num1 < 10#$num2)); then
             return 2
+        fi
+        
+        # If numeric parts are equal, compare alphabetic suffixes
+        if [ "$alpha1" != "$alpha2" ]; then
+            if [ -z "$alpha1" ] && [ -n "$alpha2" ]; then
+                # 3.6 < 3.6a (no suffix is less than any suffix)
+                return 2
+            elif [ -n "$alpha1" ] && [ -z "$alpha2" ]; then
+                # 3.6a > 3.6
+                return 1
+            elif [[ "$alpha1" > "$alpha2" ]]; then
+                return 1
+            else
+                return 2
+            fi
         fi
     done
     

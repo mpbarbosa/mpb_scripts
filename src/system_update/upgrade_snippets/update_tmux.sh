@@ -5,7 +5,7 @@
 # Handles version checking and updates for tmux terminal multiplexer.
 # Reference: https://github.com/tmux/tmux
 #
-# Version: 1.0.0-alpha
+# Version: 1.1.0-alpha
 # Date: 2025-11-25
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
@@ -174,7 +174,54 @@ perform_tmux_update() {
         build_tmux_from_source "$latest_version"
     else
         # Try package manager update
-        if ! update_via_package_manager "tmux"; then
+        local current_before_update="$CURRENT_VERSION"
+        if update_via_package_manager "tmux"; then
+            # Check if version actually changed
+            local current_after_update
+            local version_cmd
+            version_cmd=$(get_config "version.command")
+            local version_regex
+            version_regex=$(get_config "version.regex")
+            current_after_update=$($version_cmd 2>/dev/null | head -1 | sed -E "s/$version_regex/\1/")
+            
+            if [ "$current_after_update" != "$current_before_update" ]; then
+                print_success "tmux updated via package manager: $current_before_update → $current_after_update"
+                show_installation_info "tmux" "tmux"
+            else
+                # Package manager didn't upgrade to latest version
+                print_warning "Package manager has tmux but not the latest version ($latest_version)"
+                local build_prompt
+                build_prompt=$(get_config "prompts.build_from_source.message")
+                if prompt_yes_no "$build_prompt"; then
+                    build_tmux_from_source "$latest_version"
+                else
+                    # Display build instructions from config
+                    print_status "Build from source instructions:"
+                    
+                    # Get dependencies list
+                    local deps
+                    deps=$(yq -r '.build_instructions.dependencies[]' "$CONFIG_FILE" | tr '\n' ', ' | sed 's/, $//')
+                    print_status "1. Install dependencies: $deps"
+                    
+                    # Get build steps
+                    local clone_cmd
+                    clone_cmd=$(get_config "build_instructions.steps[0].command")
+                    print_status "2. Clone: $clone_cmd"
+                    
+                    local build_cmd
+                    build_cmd=$(get_config "build_instructions.steps[1].command")
+                    print_status "3. Build: $build_cmd"
+                    
+                    local install_cmd
+                    install_cmd=$(get_config "build_instructions.steps[2].command")
+                    print_status "4. Install: $install_cmd"
+                    
+                    local ref_url
+                    ref_url=$(get_config "build_instructions.reference.url")
+                    print_status "Reference: $ref_url"
+                fi
+            fi
+        else
             # No package manager found, offer source build
             local build_prompt
             build_prompt=$(get_config "prompts.build_from_source.message")
@@ -206,9 +253,6 @@ perform_tmux_update() {
                 ref_url=$(get_config "build_instructions.reference.url")
                 print_status "Reference: $ref_url"
             fi
-        else
-            print_success "tmux updated via package manager"
-            show_installation_info "tmux" "tmux"
         fi
     fi
 }
@@ -223,15 +267,8 @@ update_tmux() {
     fi
     
     # Handle update workflow with custom perform_tmux_update logic
-    local updating_msg
-    updating_msg=$(get_config "messages.updating")
-    local app_name
-    app_name=$(get_config "application.name")
-    
     if ! handle_update_prompt "$APP_DISPLAY_NAME" "$VERSION_STATUS" \
-        "print_status '$updating_msg' && \
-         perform_tmux_update '$LATEST_VERSION' && \
-         show_installation_info '$app_name' '$APP_DISPLAY_NAME'"; then
+        "perform_tmux_update '$LATEST_VERSION'"; then
         ask_continue
         return 1
     fi

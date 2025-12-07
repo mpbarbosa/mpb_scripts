@@ -54,6 +54,7 @@ messages:
 # Application identifiers
 application:
   name: "tmux"
+  display_name: "tmux"
   command: "tmux"
 
 # Version extraction

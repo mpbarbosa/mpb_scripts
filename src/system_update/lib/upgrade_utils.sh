@@ -5,7 +5,7 @@
 # Provides reusable functions for version checking and application updates
 # to avoid code duplication across upgrade snippet modules.
 #
-# Version: 1.1.0
+# Version: 1.2.0
 # Date: 2025-11-29
 # Author: mpb
 # Repository: https://github.com/mpbarbosa/mpb_scripts
@@ -103,6 +103,13 @@ config_driven_version_check() {
             github_repo=$(get_config "version.github_repo")
             LATEST_VERSION=$(get_github_latest_version "$github_owner" "$github_repo")
             ;;
+        "github_tags")
+            local github_owner
+            github_owner=$(get_config "version.github_owner")
+            local github_repo
+            github_repo=$(get_config "version.github_repo")
+            LATEST_VERSION=$(get_github_latest_tag "$github_owner" "$github_repo")
+            ;;
         "npm")
             local npm_package
             npm_package=$(get_config "application.npm_package")
@@ -154,6 +161,28 @@ get_github_latest_version() {
     local version
     version=$(curl -s "https://api.github.com/repos/$owner/$repo/releases/latest" | \
               grep '"tag_name"' | \
+              sed -E 's/.*"([^"]+)".*/\1/' | \
+              sed 's/^v//')
+    
+    echo "$version"
+}
+
+# Fetch latest version from GitHub tags (when releases are not used)
+# Usage: get_github_latest_tag "owner" "repo"
+# Returns: version string from the first tag (e.g., "2.32.11")
+get_github_latest_tag() {
+    local owner="$1"
+    local repo="$2"
+    
+    if [ -z "$owner" ] || [ -z "$repo" ]; then
+        echo ""
+        return 1
+    fi
+    
+    local version
+    version=$(curl -s "https://api.github.com/repos/$owner/$repo/tags" | \
+              grep '"name"' | \
+              head -1 | \
               sed -E 's/.*"([^"]+)".*/\1/' | \
               sed 's/^v//')
     

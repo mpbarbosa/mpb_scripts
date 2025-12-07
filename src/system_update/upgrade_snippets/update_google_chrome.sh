@@ -15,8 +15,7 @@
 #   0.1.0-alpha (2025-11-29) - Initial alpha version
 #                            - Supports apt-based installation and updates
 #                            - Auto-configures Chrome repository if needed
-#                            - Follows upgrade script pattern v1.2.0
-#                            - Not ready for production use
+#                            - Follows upgrade script pattern v1.1.0
 #
 # Dependencies:
 #   - wget (for downloading signing key)
